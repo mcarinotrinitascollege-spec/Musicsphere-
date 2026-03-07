@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Musicsphere Dramatic</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,10 +18,11 @@
         body, html { 
             width: 100%; height: 100%; background: var(--bg); 
             display: flex; align-items: center; justify-content: center; 
-            font-family: sans-serif; overflow: hidden; touch-action: none; 
+            font-family: sans-serif; overflow: hidden; touch-action: none;
+            /* Ensures content stays within screen bounds */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         
-        /* FIX: pointer-events: none ensures this glow doesn't block your buttons */
         .backlit-glow { 
             position: absolute; width: 400px; height: 550px; 
             background: var(--accent); filter: blur(100px); 
@@ -30,7 +31,7 @@
         }
 
         .card { 
-            position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 650px;
+            position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 85vh; max-height: 650px;
             background: #0a0514; border-radius: 50px; padding: 20px 25px; 
             display: flex; flex-direction: column; align-items: center; 
             border: 1.5px solid rgba(255, 255, 255, 0.1);
@@ -84,9 +85,13 @@
             transition: bottom 0.8s cubic-bezier(0.22, 1, 0.36, 1); 
         }
         #playlist-panel.open { bottom: 0; }
-
         .track-item { padding: 18px; margin-bottom: 10px; border-radius: 15px; color: rgba(255,255,255,0.4); font-size: 0.8rem; background: rgba(255,255,255,0.02); cursor: pointer; }
         .track-item.active { background: rgba(148, 0, 211, 0.2); color: white; border: 1px solid var(--accent); }
+        
+        /* New URL input styling */
+        .url-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        #urlInput { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; color: white; outline: none; }
+        #addUrlBtn { background: var(--accent); border: none; padding: 10px 15px; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body onclick="initAudio()">
@@ -121,7 +126,10 @@
 
     <div id="playlist-panel">
         <div style="color:white; opacity:0.1; text-align:center; margin-bottom:15px; font-size:0.6rem; letter-spacing:4px;">IMPORT URL</div>
-        <div class="url-box"><input type="text" id="urlInput" placeholder="Paste link..."><button id="addUrlBtn">LOAD</button></div>
+        <div class="url-box">
+            <input type="text" id="urlInput" placeholder="Paste link...">
+            <button id="addUrlBtn">LOAD</button>
+        </div>
         <div id="track-list" style="overflow-y: auto;"></div>
     </div>
 </div>
@@ -158,6 +166,16 @@
             source.connect(analyser); analyser.connect(audioCtx.destination);
             dataArray = new Uint8Array(analyser.frequencyBinCount);
             draw();
+            setupMediaSession();
+        }
+    }
+
+    function setupMediaSession() {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => audio.play());
+            navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', () => document.getElementById('prevBtn').click());
+            navigator.mediaSession.setActionHandler('nexttrack', () => document.getElementById('nextBtn').click());
         }
     }
 
@@ -168,6 +186,16 @@
         songLabel.textContent = track.name.toUpperCase();
         audio.src = track.url; audio.play().catch(() => {});
         playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        
+        // Update System Media Info
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.name,
+                artist: 'Musicsphere Dramatic',
+                artwork: [{ src: 'icon.png', sizes: '512x512', type: 'image/png' }]
+            });
+        }
+        
         updateUI();
     }
 
@@ -199,6 +227,7 @@
         }
     }
 
+    // Disk scrubbing logic
     function getAngle(e) {
         const r = cdAssembly.getBoundingClientRect();
         const x = (e.touches?e.touches[0].clientX:e.clientX) - (r.left+r.width/2);
