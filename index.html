@@ -3,229 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Musicsphere v3.6 - Tinted Pro</title>
+    <title>Musicsphere Pro</title>
     <style>
-        :root { --accent: #9400D3; --bg: #000; --disk-rot: 0deg; }
+        :root { --accent: #9400D3; --bg: #05010a; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html { 
-            width: 100%; height: 100%; background: #000; 
+            width: 100%; height: 100%; background: var(--bg); 
             display: flex; align-items: center; justify-content: center; 
-            font-family: -apple-system, system-ui, sans-serif; overflow: hidden; touch-action: none; 
+            font-family: sans-serif; overflow: hidden; touch-action: none; 
         }
 
-        /* THE MASTER VIDEO ENGINE */
-        #masterVideo {
-            position: absolute; width: 100%; height: 100%; object-fit: cover;
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 1; filter: brightness(0.4) blur(40px);
-        }
-
-        /* FULL SCREEN STATE */
-        body.is-zoomed #masterVideo {
-            z-index: 1000; filter: brightness(1) blur(0px); object-fit: contain; background: #000;
-        }
+        .video-bg { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; display: none; filter: blur(40px) brightness(1.3); z-index: 0; opacity: 0.65; pointer-events: none; }
+        .video-fs { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 5; opacity: 0; transition: opacity 0.8s ease; background: #000; }
+        
+        .backlit-glow { position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); opacity: 0.15; border-radius: 50%; z-index: 1; }
 
         .card { 
-            position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 660px;
-            /* LIMO TINT WINDOW */
-            background: rgba(0, 0, 0, 0.75); 
-            border-radius: 50px; padding: 30px; 
+            position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 680px;
+            background: rgba(15, 8, 25, 0.85); border-radius: 50px; padding: 25px; 
             display: flex; flex-direction: column; align-items: center; 
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 40px 100px rgba(0,0,0,0.8); overflow: hidden;
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden;
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Background Video Inside Player */
-        .card-video-wrap {
-            position: absolute; inset: 0; z-index: -1; overflow: hidden;
+        .headtitle {
+            position: absolute; top: 45px; left: 30px;
+            font-size: 0.75rem; font-weight: 900; letter-spacing: 6px; color: #fff;
+            text-transform: uppercase; z-index: 25;
+            animation: breathe 4s ease-in-out infinite;
         }
-        .card-video-wrap::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%);
+        @keyframes breathe {
+            0%, 100% { opacity: 0.2; transform: scale(1); filter: blur(1px); }
+            50% { opacity: 0.8; transform: scale(1.02); filter: blur(0px); text-shadow: 0 0 15px var(--accent); }
         }
 
-        .headtitle { font-size: 0.6rem; font-weight: 900; letter-spacing: 5px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 10px; }
+        body.is-zoomed .card { width: 100vw; height: 100vh; max-width: none; border-radius: 0; background: #000; border: none; padding: 0; }
+        body.is-zoomed .video-fs { display: block; opacity: 1; }
+        body.is-zoomed .hide-on-zoom { opacity: 0 !important; pointer-events: none; visibility: hidden; }
+        
+        /* STEALTH REVEAL LOGIC */
+        .stagger { transition: opacity 0.4s ease, transform 0.4s ease; }
+        .is-stealth .stagger { opacity: 0 !important; pointer-events: none; transform: translateY(15px); }
+
+        .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 45px; z-index: 20; padding-top: 10px; gap: 10px; }
+        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: opacity 0.2s; }
+        .icon-nav:active { opacity: 1; }
 
         .disk-wrapper { 
-            position: relative; width: 230px; height: 230px; margin: 40px 0;
-            display: flex; align-items: center; justify-content: center;
+            position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center; z-index: 20;
         }
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 80%);
-            border: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer; z-index: 5;
-            transform: rotate(var(--disk-rot)); will-change: transform;
+            background: radial-gradient(circle, rgba(148, 0, 211, 0.1) 0%, transparent 75%);
+            border: 2px solid rgba(255, 255, 255, 0.1); cursor: grab; z-index: 5;
+            transform: rotate(var(--disk-rot));
         }
 
-        #curved-text-svg { position: absolute; inset: -10px; pointer-events: none; z-index: 10; }
-        .curved-title { font-size: 6px; font-weight: 900; fill: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 3px; }
+        #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
+        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
 
-        #time-display { position: absolute; color: #fff; font-size: 1.4rem; opacity: 0; font-family: monospace; z-index: 20; pointer-events: none; }
+        .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
+        #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; text-shadow: 0 0 20px var(--accent); }
 
-        canvas { width: 100%; height: 80px; margin-bottom: 20px; opacity: 0.8; }
+        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.9; } 
 
-        .vol-wrap { width: 100%; padding: 5px 0; margin-bottom: 30px; }
-        .vol-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; }
-        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; background: #fff; border-radius: 3px; width: 70%; }
+        .load-btn { font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; letter-spacing: 4px; }
+
+        .vol-wrap { width: 100%; padding: 5px 0; cursor: pointer; z-index: 40; margin-bottom: 25px; }
+        .vol-track { height: 32px; background: rgba(255,255,255,0.05); border-radius: 16px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(to right, transparent, rgba(148, 0, 211, 0.3)); border-right: 2px solid #fff; width: 70%; pointer-events: none; }
         
-        .controls { display: flex; align-items: center; gap: 40px; margin-bottom: 20px; }
-        .icon-btn { background: none; border: none; width: 24px; height: 24px; fill: white; opacity: 0.3; }
-        .play-btn { width: 60px; height: 60px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 10px; z-index: 30; }
+        .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
+        .play-btn { width: 60px; height: 60px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+
+        #playlist-panel { 
+            position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
+            background: rgba(255, 255, 255, 0.01); 
+            backdrop-filter: blur(80px) contrast(1.2) brightness(0.9); 
+            -webkit-backdrop-filter: blur(80px) contrast(1.2) brightness(0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 40px 40px 0 0; z-index: 1000; 
+            transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
+        }
+        #playlist-panel.open { bottom: 0; }
+        .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.4); font-size: 0.8rem; background: rgba(255,255,255,0.03); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
 
         #exitBtn { 
-            position: fixed; top: 30px; right: 30px; z-index: 2000; display: none; 
-            padding: 12px 24px; border-radius: 30px; background: #fff; color: #000; 
-            font-size: 0.7rem; font-weight: 900; border: none; letter-spacing: 1px;
+            position: fixed; top: 40px; left: 30px; z-index: 3000; 
+            display: none; padding: 12px 25px; border-radius: 30px; 
+            background: rgba(0,0,0,0.7); color: white; border: 1px solid rgba(255,255,255,0.3); 
+            cursor: pointer; font-size: 0.7rem; letter-spacing: 2px; font-weight: 900;
         }
-
-        .input-hint { font-size: 0.5rem; color: rgba(255,255,255,0.2); margin-top: 10px; letter-spacing: 2px; }
     </style>
 </head>
 <body>
 
-<video id="masterVideo" loop playsinline crossorigin="anonymous"></video>
-
-<button id="exitBtn">MINIMIZE MV</button>
+<video id="bgVideo" class="video-bg" loop muted playsinline></video>
+<video id="fsVideo" class="video-fs" loop muted playsinline></video>
+<div class="backlit-glow"></div>
+<button id="exitBtn">RETURN</button>
 
 <div class="card" id="playerCard">
-    <div class="card-video-wrap"></div> <div class="headtitle">MUSICSPHERE</div>
+    <div class="headtitle stagger hide-on-zoom">MUSICSPHERE</div>
     
-    <div class="disk-wrapper" id="diskArea">
+    <div class="header stagger hide-on-zoom">
+        <button class="icon-nav" id="stealthToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="icon-nav" id="listToggle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg></button>
+    </div>
+    
+    <div class="disk-wrapper stagger hide-on-zoom" id="diskArea">
         <div id="cdAssembly"></div>
         <svg id="curved-text-svg" viewBox="0 0 200 200">
-            <defs><path id="diskPath" d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0"></path></defs>
-            <text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">TAP TO LOAD MP4</textPath></text>
+            <defs><path id="diskPath" d="M 100, 100 m -85, 0 a 85,85 0 1,1 170,0 a 85,85 0 1,1 -170,0"></path></defs>
+            <text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">AWAITING INPUT</textPath></text>
         </svg>
-        <div id="time-display">0:00</div>
+        <div class="hud-center">
+            <div id="time-display">0:00</div>
+        </div>
     </div>
 
-    <canvas id="viz"></canvas>
+    <canvas id="viz" class="stagger hide-on-zoom"></canvas>
 
-    <div class="vol-wrap" id="volHitbox">
+    <label class="load-btn stagger hide-on-zoom">INSERT<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
+
+    <div class="vol-wrap stagger hide-on-zoom" id="volHitbox">
         <div class="vol-track"><div class="vol-fill" id="vFil"></div></div>
     </div>
 
-    <div class="controls">
+    <div class="controls stagger hide-on-zoom">
         <button class="icon-btn" id="prevBtn"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-        <div class="play-btn" id="playBtn"><svg viewBox="0 0 24 24" id="playIcon" width="30" height="30" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="play-btn" id="playBtn"><svg viewBox="0 0 24 24" id="playIcon" width="28" height="28" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
         <button class="icon-btn" id="nextBtn"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
     </div>
 
-    <label class="input-hint">HOLD DISK FOR FULL MV<input type="file" id="audIn" accept="video/mp4" style="display:none"></label>
+    <div id="playlist-panel">
+        <div id="track-list" style="overflow-y: auto;"></div>
+    </div>
 </div>
 
+<audio id="player" crossorigin="anonymous"></audio>
+
 <script>
-    const video = document.getElementById('masterVideo');
+    const audio = document.getElementById('player'), fsVideo = document.getElementById('fsVideo'), bgVideo = document.getElementById('bgVideo');
     const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
     const songLabel = document.getElementById('songLabel'), timeDisplay = document.getElementById('time-display');
     const playIcon = document.getElementById('playIcon'), vFil = document.getElementById('vFil'), volHitbox = document.getElementById('volHitbox');
-    const exitBtn = document.getElementById('exitBtn');
+    const playlistPanel = document.getElementById('playlist-panel'), trackListUI = document.getElementById('track-list');
+    const playerCard = document.getElementById('playerCard'), exitBtn = document.getElementById('exitBtn');
 
-    let audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0, pressTimer;
+    let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0, wasPlaying = false, pressTimer;
 
-    async function startEngine() {
+    const getActive = () => playlist[currentIndex]?.type === 'video' ? fsVideo : audio;
+
+    async function initAudio() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 128;
-            const source = audioCtx.createMediaElementSource(video);
+            analyser.fftSize = 64; 
+            const source = audioCtx.createMediaElementSource(audio);
             source.connect(analyser);
             analyser.connect(audioCtx.destination);
             dataArray = new Uint8Array(analyser.frequencyBinCount);
-            render();
+            draw();
         }
     }
 
-    function render() {
-        if (!video.paused && !isDragging) { 
-            rotation += 0.4; 
-            cdAssembly.style.transform = `rotate(${rotation}deg)`;
-            document.getElementById('curved-text-svg').style.transform = `rotate(${rotation - 90}deg)`;
-        }
-
-        if (analyser && !video.paused) {
+    function draw() {
+        requestAnimationFrame(draw);
+        const active = getActive();
+        if (!active.paused && !isDragging) { rotation += 0.25; document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`); }
+        if (analyser && !audio.paused) {
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const bars = 40, barW = 3, gap = (canvas.width - (bars * barW)) / (bars - 1);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
-            
-            for (let i = 0; i < bars; i++) {
-                const x = (i - (bars-1)/2) / ((bars-1)/2);
-                const uCurve = Math.pow(x, 2); 
-                const dIdx = Math.floor((1 - Math.abs(x)) * 20);
-                const h = Math.max(4, (dataArray[dIdx] / 255) * canvas.height * (0.2 + uCurve * 0.8));
+            const numBars = 10, gap = 8;
+            const barW = (canvas.width / 2 - (numBars * gap)) / numBars;
+            for (let i = 0; i < numBars; i++) {
+                let sensitivity = 1 - (i / numBars) * 0.7;
+                let val = (dataArray[i] / 255) * canvas.height * sensitivity;
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (val/canvas.height)})`;
                 ctx.beginPath();
-                ctx.roundRect(i * (barW + gap), canvas.height - h, barW, h, 4);
+                ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 10);
+                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - val, barW, val, 10);
                 ctx.fill();
             }
         }
-        requestAnimationFrame(render);
     }
 
-    // LOAD FILE
-    document.getElementById('audIn').onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            video.src = URL.createObjectURL(file);
-            songLabel.textContent = file.name.toUpperCase();
-            video.play();
-            playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-            startEngine();
-        }
-    };
+    function loadTrack(index) {
+        if (!playlist.length) return;
+        currentIndex = (index + playlist.length) % playlist.length;
+        const track = playlist[currentIndex];
+        audio.pause(); fsVideo.pause();
+        const active = getActive();
+        songLabel.textContent = track.name.toUpperCase();
+        active.src = track.url;
+        if(track.type === 'video') { bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play(); } else { bgVideo.style.display = 'none'; }
+        active.play().catch(()=>{});
+        playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+    }
 
-    // REVEAL MV LOGIC
-    cdAssembly.addEventListener('touchstart', (e) => {
-        pressTimer = setTimeout(() => {
-            if(!isDragging) {
-                document.body.classList.add('is-zoomed');
-                exitBtn.style.display = 'block';
-            }
-        }, 800);
-    });
-    cdAssembly.addEventListener('touchend', () => clearTimeout(pressTimer));
-
-    exitBtn.onclick = () => {
-        document.body.classList.remove('is-zoomed');
-        exitBtn.style.display = 'none';
-    };
-
-    // PLAY/PAUSE
-    document.getElementById('playBtn').onclick = () => {
-        if(video.paused) { video.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
-        else { video.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
-    };
-
-    // DISK SEEKING
     function getAngle(e) {
         const r = cdAssembly.getBoundingClientRect();
         const p = e.touches ? e.touches[0] : e;
         return Math.atan2(p.clientY-(r.top+r.height/2), p.clientX-(r.left+r.width/2)) * 180 / Math.PI;
     }
 
-    cdAssembly.addEventListener('mousedown', (e) => { isDragging = true; lastAngle = getAngle(e); video.pause(); timeDisplay.style.opacity = '1'; });
-    window.addEventListener('mousemove', (e) => {
+    const startS = (e) => {
+        const active = getActive(); if(!active.src) return;
+        if(e.type === 'touchstart' && !playerCard.classList.contains('is-stealth')) e.preventDefault();
+        isDragging = true; lastAngle = getAngle(e);
+        wasPlaying = !active.paused; active.pause();
+        timeDisplay.style.opacity = '1';
+        
+        clearTimeout(pressTimer);
+        pressTimer = setTimeout(() => {
+            if(isDragging && playlist[currentIndex]?.type === 'video' && !playerCard.classList.contains('is-stealth')) {
+                document.body.classList.add('is-zoomed');
+                exitBtn.style.display = 'block';
+            }
+        }, 800);
+    };
+
+    const moveS = (e) => {
         if(!isDragging) return;
+        const active = getActive();
         const angle = getAngle(e);
         let delta = angle - lastAngle;
         if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
         rotation += delta;
-        cdAssembly.style.transform = `rotate(${rotation}deg)`;
-        video.currentTime = Math.max(0, Math.min(video.duration - 0.1, video.currentTime + (delta * 0.1)));
-        timeDisplay.textContent = Math.floor(video.currentTime/60) + ":" + String(Math.floor(video.currentTime%60)).padStart(2,'0');
+        document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
+        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.15)));
+        timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
         lastAngle = angle;
-    });
-    window.addEventListener('mouseup', () => { if(isDragging) { isDragging = false; video.play(); timeDisplay.style.opacity = '0'; } });
-
-    // VOLUME
-    volHitbox.onclick = (e) => {
-        const r = volHitbox.getBoundingClientRect();
-        const pr = (e.clientX - r.left) / r.width;
-        vFil.style.width = (pr * 100) + '%';
-        video.volume = pr;
     };
+
+    const endS = () => {
+        if(!isDragging) return;
+        isDragging = false;
+        clearTimeout(pressTimer);
+        timeDisplay.style.opacity = '0';
+        if(wasPlaying) getActive().play();
+    };
+
+    // GLOBAL CLICK FOR STEALTH REVEAL
+    playerCard.addEventListener('click', (e) => {
+        if (playerCard.classList.contains('is-stealth')) {
+            playerCard.classList.remove('is-stealth');
+        }
+    });
+
+    cdAssembly.addEventListener('mousedown', startS);
+    window.addEventListener('mousemove', moveS);
+    window.addEventListener('mouseup', endS);
+    cdAssembly.addEventListener('touchstart', startS, {passive: false});
+    window.addEventListener('touchmove', moveS, {passive: false});
+    window.addEventListener('touchend', endS);
+
+    exitBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.body.classList.remove('is-zoomed');
+        exitBtn.style.display = 'none';
+    });
+
+    document.getElementById('stealthToggle').onclick = (e) => {
+        e.stopPropagation();
+        playerCard.classList.toggle('is-stealth');
+    };
+
+    document.getElementById('listToggle').onclick = (e) => {
+        e.stopPropagation();
+        playlistPanel.classList.toggle('open');
+    };
+
+    document.getElementById('playBtn').onclick = (e) => {
+        e.stopPropagation();
+        initAudio();
+        const a = getActive();
+        if(a.paused) { a.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
+        else { a.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
+    };
+
+    document.getElementById('audIn').onchange = (e) => {
+        Array.from(e.target.files).forEach(f => {
+            playlist.push({ name: f.name.split('.')[0], url: URL.createObjectURL(f), type: f.type.startsWith('video') ? 'video' : 'audio' });
+        });
+        if(playlist.length > 0) loadTrack(playlist.length - e.target.files.length);
+        trackListUI.innerHTML = "";
+        playlist.forEach((t, i) => {
+            const div = document.createElement('div');
+            div.className = 'track-item';
+            div.textContent = t.name;
+            div.onclick = (ev) => { ev.stopPropagation(); loadTrack(i); playlistPanel.classList.remove('open'); };
+            trackListUI.appendChild(div);
+        });
+    };
+
+    function setV(e) {
+        const r = volHitbox.getBoundingClientRect();
+        const p = e.touches ? e.touches[0] : e;
+        let pr = Math.max(0, Math.min(1, (p.clientX - r.left) / r.width));
+        vFil.style.width = (pr * 100) + '%';
+        audio.volume = pr; fsVideo.volume = pr;
+    }
+    volHitbox.addEventListener('mousedown', (e) => { e.stopPropagation(); setV(e); window.onmousemove = setV; window.onmouseup = () => window.onmousemove = null; });
+    volHitbox.addEventListener('touchstart', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
+    volHitbox.addEventListener('touchmove', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
 
     window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
     window.onresize();
