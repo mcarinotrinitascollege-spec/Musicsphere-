@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-<meta name="mobile-web-app-capable" content="yes">
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#9400D3">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Musicsphere Dramatic</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#9400D3">
+
     <style>
         :root { --accent: #9400D3; --bg: #030008; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
@@ -20,10 +21,12 @@
             font-family: sans-serif; overflow: hidden; touch-action: none; 
         }
         
+        /* FIX: pointer-events: none ensures this glow doesn't block your buttons */
         .backlit-glow { 
             position: absolute; width: 400px; height: 550px; 
             background: var(--accent); filter: blur(100px); 
             opacity: 0.15; border-radius: 50%; z-index: 1; 
+            pointer-events: none; 
         }
 
         .card { 
@@ -42,7 +45,7 @@
             50% { opacity: 0.8; text-shadow: 0 0 15px var(--accent); }
         }
 
-        .list-toggle { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; padding: 8px; display: flex; }
+        .list-toggle { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; padding: 8px; display: flex; z-index: 20; }
 
         .disk-wrapper { position: relative; width: 260px; height: 260px; flex-shrink: 0; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
         
@@ -53,7 +56,7 @@
             transform: rotate(var(--disk-rot)); will-change: transform;
         }
 
-        #curved-text-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
+        #curved-text-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); will-change: transform; }
         .curved-title { font-size: 8px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
 
         .hud-center { position: absolute; z-index: 2; pointer-events: none; text-align: center; }
@@ -71,25 +74,19 @@
         .vol-track { height: 40px; background: rgba(255,255,255,0.03); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.06); }
         .vol-fill { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(to right, transparent, rgba(148, 0, 211, 0.4)); border-right: 2px solid #fff; width: 70%; pointer-events: none; }
         
-        .load-btn { font-size: 0.6rem; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 12px 30px; border-radius: 30px; cursor: pointer; margin-top: auto; opacity: 0.3; letter-spacing: 2px; }
+        .load-btn { font-size: 0.6rem; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 12px 30px; border-radius: 30px; cursor: pointer; margin-top: auto; opacity: 0.3; letter-spacing: 2px; z-index: 20; }
 
-        /* 🎬 DRAMATIC PLAYLIST ANIMATION */
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
             background: rgba(10, 5, 20, 0.98); backdrop-filter: blur(30px); 
             border-top: 1px solid rgba(255, 255, 255, 0.15); border-radius: 40px 40px 0 0; 
             z-index: 1000; padding: 30px 20px; display: flex; flex-direction: column;
-            
-            /* The Magic Ease-Out Cubic: Starts very fast, ends super relaxed */
             transition: bottom 0.8s cubic-bezier(0.22, 1, 0.36, 1); 
         }
         #playlist-panel.open { bottom: 0; }
 
         .track-item { padding: 18px; margin-bottom: 10px; border-radius: 15px; color: rgba(255,255,255,0.4); font-size: 0.8rem; background: rgba(255,255,255,0.02); cursor: pointer; }
         .track-item.active { background: rgba(148, 0, 211, 0.2); color: white; border: 1px solid var(--accent); }
-        .url-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        #urlInput { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; color: white; font-size: 0.7rem; outline: none; }
-        #addUrlBtn { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 0 15px; cursor: pointer; font-weight: bold; font-size: 0.7rem; }
     </style>
 </head>
 <body onclick="initAudio()">
@@ -256,10 +253,3 @@
 </script>
 </body>
 </html>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js');
-  });
-}
-</script>
