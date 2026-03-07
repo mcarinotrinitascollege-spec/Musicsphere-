@@ -10,7 +10,6 @@
 body, html { width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-family: sans-serif; overflow: hidden; touch-action: none; }
 .backlit-glow { position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); opacity: 0.15; border-radius: 50%; z-index: 1; }
 
-/* Video Backgrounds */
 .video-bg { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display:none; filter: blur(20px) brightness(0.4); z-index:0; }
 .video-card { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display:none; filter: brightness(0.8); z-index:2; border-radius:50px; pointer-events:none; }
 
@@ -34,9 +33,8 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 .play-btn { width:65px;height:65px;background:rgba(148,0,211,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;filter: drop-shadow(0 0 12px rgba(148,0,211,0.5)) drop-shadow(0 0 1px #fff);cursor:pointer; }
 .vol-wrap { width:100%;padding:5px 0;cursor:pointer;z-index:30; }
 .vol-track { height:40px;background: rgba(255,255,255,0.03); border-radius:20px; position:relative; overflow:hidden; border:1px solid rgba(255,255,255,0.06);}
-.vol-fill { position:absolute; left:0; top:0; height:100%; background: linear-gradient(to right, transparent, rgba(148,0,211,0.4)); border-right:2px solid #fff; width:70%; pointer-events:none; }
-.load-btns { display: flex; gap: 10px; width: 100%; margin-top: auto; z-index: 20; }
-.load-btn { font-size:0.55rem;color:#fff;border:1px solid rgba(255,255,255,0.1);padding:12px 10px;border-radius:30px;cursor:pointer;opacity:0.3;letter-spacing:2px; flex:1; text-align:center; }
+.vol-fill { position:absolute; left:0; top:0; height:100%; background: linear-gradient(to right, transparent, rgba(148,0,211,0.4)); border-right:2px solid #fff; width:100%; pointer-events:none; }
+.load-btn { font-size:0.6rem;color:#fff;border:1px solid rgba(255,255,255,0.1);padding:12px 30px;border-radius:30px;cursor:pointer;margin-top:auto;opacity:0.3;letter-spacing:2px; z-index: 20; width: 100%; text-align: center;}
 #playlist-panel { position:absolute;bottom:-100%;left:0;width:100%;height:85%;background:rgba(10,5,20,0.98);backdrop-filter:blur(30px);border-top:1px solid rgba(255,255,255,0.15);border-radius:40px 40px 0 0; z-index:1000; transition: bottom 0.4s cubic-bezier(0.16,1,0.3,1); padding:30px 20px; display:flex; flex-direction:column; }
 #playlist-panel.open { bottom:0; }
 .track-item { padding:18px; margin-bottom:10px; border-radius:15px; color:rgba(255,255,255,0.4); font-size:0.8rem; background: rgba(255,255,255,0.02); cursor:pointer; }
@@ -48,7 +46,7 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 <video id="bgVideo" class="video-bg" loop muted></video>
 
 <div class="card">
-    <video id="cardVideo" class="video-card" loop></video>
+    <video id="cardVideo" class="video-card" loop playsinline></video>
     <div class="backlit-glow" id="bgGlow"></div>
     
     <div class="header">
@@ -72,10 +70,7 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 
     <div class="vol-wrap" id="volHitbox"><div class="vol-track"><div class="vol-fill" id="vFil"></div></div></div>
 
-    <div class="load-btns">
-        <label class="load-btn">ADD SONGS<input type="file" id="audIn" accept="audio/*" multiple style="display:none"></label>
-        <label class="load-btn" style="border-color: var(--accent);">ADD VIDEO<input type="file" id="vidIn" accept="video/mp4" multiple style="display:none"></label>
-    </div>
+    <label class="load-btn">ADD MEDIA<input type="file" id="mediaIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
 
     <div id="playlist-panel">
         <div id="track-list" style="overflow-y: auto;"></div>
@@ -86,12 +81,12 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 
 <script>
 const audio=document.getElementById('player'), bgVideo=document.getElementById('bgVideo'), cardVideo=document.getElementById('cardVideo');
-const canvas=document.getElementById('viz'), ctx=canvas.getContext('2d');
+const canvas=document.getElementById('viz'), ctx=canvas.getContext('2d'), vFil=document.getElementById('vFil');
 const cdAssembly=document.getElementById('cdAssembly'), songLabel=document.getElementById('songLabel'), trackCounter=document.getElementById('track-counter');
-const timeDisplay=document.getElementById('time-display'), playIcon=document.getElementById('playIcon'), vFil=document.getElementById('vFil');
-const volHitbox=document.getElementById('volHitbox'), bgGlow=document.getElementById('bgGlow'), playlistPanel=document.getElementById('playlist-panel'), trackListUI=document.getElementById('track-list');
+const timeDisplay=document.getElementById('time-display'), playIcon=document.getElementById('playIcon'), volHitbox=document.getElementById('volHitbox');
+const bgGlow=document.getElementById('bgGlow'), playlistPanel=document.getElementById('playlist-panel'), trackListUI=document.getElementById('track-list');
 
-let playlist=[], currentIndex=0, audioCtx, analyser, sourceNode, dataArray, rotation=0, isDragging=false, lastAngle=0;
+let playlist=[], currentIndex=0, audioCtx, analyser, dataArray, rotation=0, isDragging=false, lastAngle=0, currentVol=1.0;
 
 async function initAudio(){
     if(!audioCtx){
@@ -99,11 +94,9 @@ async function initAudio(){
         analyser=audioCtx.createAnalyser();
         analyser.fftSize=64;
         dataArray=new Uint8Array(analyser.frequencyBinCount);
-        // Connect both sources to the same analyser
-        const audioSource = audioCtx.createMediaElementSource(audio);
-        const videoSource = audioCtx.createMediaElementSource(cardVideo);
-        audioSource.connect(analyser);
-        videoSource.connect(analyser);
+        const aSrc = audioCtx.createMediaElementSource(audio);
+        const vSrc = audioCtx.createMediaElementSource(cardVideo);
+        aSrc.connect(analyser); vSrc.connect(analyser);
         analyser.connect(audioCtx.destination);
         draw();
     }
@@ -116,22 +109,21 @@ function loadTrack(index){
     trackCounter.textContent=`${currentIndex+1} / ${playlist.length}`;
     songLabel.textContent=track.name.toUpperCase();
     
-    // Reset states
+    // reset
     audio.pause(); audio.src="";
     cardVideo.pause(); cardVideo.src="";
     bgVideo.pause(); bgVideo.src="";
 
     if(track.type==='video'){
-        cardVideo.src=track.url;
-        bgVideo.src=track.url;
-        cardVideo.style.display='block';
-        bgVideo.style.display='block';
-        cardVideo.play(); bgVideo.play();
+        cardVideo.src=track.url; bgVideo.src=track.url;
+        cardVideo.style.display='block'; bgVideo.style.display='block';
+        cardVideo.volume = currentVol;
+        cardVideo.play().catch(e=>console.log("Video Play Error:",e));
+        bgVideo.play().catch(()=>{});
     } else {
-        cardVideo.style.display='none';
-        bgVideo.style.display='none';
-        audio.src=track.url;
-        audio.play();
+        cardVideo.style.display='none'; bgVideo.style.display='none';
+        audio.src=track.url; audio.volume = currentVol;
+        audio.play().catch(e=>console.log("Audio Play Error:",e));
     }
     playIcon.innerHTML='<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
     updateUI();
@@ -150,8 +142,8 @@ function updateUI(){
 
 function draw(){
     requestAnimationFrame(draw);
-    const activeMedia = (playlist[currentIndex]?.type === 'video') ? cardVideo : audio;
-    if(!activeMedia.paused && !isDragging){
+    const m = (playlist[currentIndex]?.type === 'video') ? cardVideo : audio;
+    if(!m.paused && !isDragging){
         rotation+=0.2; document.documentElement.style.setProperty('--disk-rot',`${rotation}deg`);
     }
     if(analyser){
@@ -169,7 +161,7 @@ function draw(){
     }
 }
 
-// SCRUBBING (Unified for Audio/Video)
+// SCRUBBING
 const getAngle=e=>{const r=cdAssembly.getBoundingClientRect();const x=(e.touches?e.touches[0].clientX:e.clientX)-(r.left+r.width/2);const y=(e.touches?e.touches[0].clientY:e.clientY)-(r.top+r.height/2);return Math.atan2(y,x)*180/Math.PI;};
 const startS=e=>{
     const m = (playlist[currentIndex]?.type === 'video') ? cardVideo : audio;
@@ -197,13 +189,15 @@ const endS=()=>{
 cdAssembly.addEventListener('mousedown',startS); window.addEventListener('mousemove',moveS); window.addEventListener('mouseup',endS);
 cdAssembly.addEventListener('touchstart',startS); window.addEventListener('touchmove',moveS); window.addEventListener('touchend',endS);
 
-// VOLUME
-volHitbox.onclick=e=>{
-    const rect=volHitbox.getBoundingClientRect();
-    const p=(e.clientX-rect.left)/rect.width;
-    vFil.style.width=(p*100)+'%';
-    audio.volume=p; cardVideo.volume=p;
-};
+// VOLUME FIX
+volHitbox.addEventListener('click', e => {
+    const rect = volHitbox.getBoundingClientRect();
+    const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    currentVol = p;
+    vFil.style.width = (p * 100) + '%';
+    audio.volume = p;
+    cardVideo.volume = p;
+});
 
 // CONTROLS
 document.getElementById('playBtn').onclick=()=>{
@@ -216,17 +210,16 @@ document.getElementById('nextBtn').onclick=()=>loadTrack((currentIndex+1)%playli
 document.getElementById('prevBtn').onclick=()=>loadTrack((currentIndex-1+playlist.length)%playlist.length);
 document.getElementById('listToggle').onclick=()=>playlistPanel.classList.toggle('open');
 
-// FILE INPUTS
-document.getElementById('audIn').onchange=e=>{
-    Array.from(e.target.files).forEach(f=>playlist.push({name:f.name, url:URL.createObjectURL(f), type:'audio'}));
-    if(playlist.length===e.target.files.length) loadTrack(0); else updateUI();
-};
-document.getElementById('vidIn').onchange=e=>{
-    Array.from(e.target.files).forEach(f=>playlist.push({name:f.name, url:URL.createObjectURL(f), type:'video'}));
-    if(playlist.length===e.target.files.length) loadTrack(0); else updateUI();
+// ONE BUTTON MEDIA INPUT
+document.getElementById('mediaIn').onchange=e=>{
+    Array.from(e.target.files).forEach(f=>{
+        const type = f.type.startsWith('video') ? 'video' : 'audio';
+        playlist.push({name:f.name, url:URL.createObjectURL(f), type: type});
+    });
+    if(playlist.length > 0 && !audio.src && !cardVideo.src) loadTrack(0);
+    else updateUI();
 };
 
-// AUTO NEXT
 audio.onended=()=>document.getElementById('nextBtn').click();
 cardVideo.onended=()=>document.getElementById('nextBtn').click();
 </script>
