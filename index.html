@@ -22,8 +22,7 @@ body, html { width: 100%; height: 100%; background: var(--bg); display: flex; al
 .list-toggle { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; padding: 8px; display: flex; }
 .disk-wrapper { position: relative; width: 260px; height: 260px; flex-shrink: 0; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; z-index: 15; }
 
-/* Dimmer overlay for the center video area */
-.center-dimmer { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(0,0,0,0.7) 0%, transparent 80%); border-radius: 50%; z-index: 14; pointer-events: none; }
+.center-dimmer { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(0,0,0,0.75) 0%, transparent 85%); border-radius: 50%; z-index: 14; pointer-events: none; }
 
 #cdAssembly { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(148,0,211,0.1) 0%,transparent 75%); border:2px solid rgba(255,255,255,0.08); cursor:grab; z-index:16; transform:rotate(var(--disk-rot)); will-change: transform; }
 #curved-text-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 17; transform: rotate(calc(var(--disk-rot) - 90deg)); }
@@ -35,9 +34,11 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 .controls { display:flex;align-items:center;gap:35px;margin-bottom:20px;z-index:20; }
 .icon-btn { background:none;border:none;width:30px;height:30px;fill:white;opacity:0.35;cursor:pointer; }
 .play-btn { width:65px;height:65px;background:rgba(148,0,211,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;filter: drop-shadow(0 0 12px rgba(148,0,211,0.5)) drop-shadow(0 0 1px #fff);cursor:pointer; }
-.vol-wrap { width:100%;padding:5px 0;cursor:pointer;z-index:30; touch-action: none; }
-.vol-track { height:40px;background: rgba(255,255,255,0.03); border-radius:20px; position:relative; overflow:hidden; border:1px solid rgba(255,255,255,0.06);}
-.vol-fill { position:absolute; left:0; top:0; height:100%; background: linear-gradient(to right, transparent, rgba(148,0,211,0.4)); border-right:2px solid #fff; width:100%; pointer-events:none; }
+
+.vol-wrap { width:100%; padding:10px 0; cursor:pointer; z-index:30; touch-action: none; position: relative; }
+.vol-track { height:35px; background: rgba(255,255,255,0.03); border-radius:18px; position:relative; overflow:hidden; border:1px solid rgba(255,255,255,0.06);}
+.vol-fill { position:absolute; left:0; top:0; height:100%; background: linear-gradient(to right, transparent, rgba(148,0,211,0.5)); border-right:2.5px solid #fff; width:80%; pointer-events:none; }
+
 .load-btn { font-size:0.6rem;color:#fff;border:1px solid rgba(255,255,255,0.1);padding:12px 30px;border-radius:30px;cursor:pointer;margin-top:auto;opacity:0.3;letter-spacing:2px; z-index: 20; width: 100%; text-align: center;}
 #playlist-panel { position:absolute;bottom:-100%;left:0;width:100%;height:85%;background:rgba(10,5,20,0.98);backdrop-filter:blur(30px);border-top:1px solid rgba(255,255,255,0.15);border-radius:40px 40px 0 0; z-index:1000; transition: bottom 0.4s cubic-bezier(0.16,1,0.3,1); padding:30px 20px; display:flex; flex-direction:column; }
 #playlist-panel.open { bottom:0; }
@@ -91,7 +92,7 @@ const cdAssembly=document.getElementById('cdAssembly'), songLabel=document.getEl
 const timeDisplay=document.getElementById('time-display'), playIcon=document.getElementById('playIcon'), volHitbox=document.getElementById('volHitbox');
 const bgGlow=document.getElementById('bgGlow'), playlistPanel=document.getElementById('playlist-panel'), trackListUI=document.getElementById('track-list');
 
-let playlist=[], currentIndex=0, audioCtx, analyser, dataArray, rotation=0, isDragging=false, lastAngle=0, currentVol=1.0, isVolDragging=false;
+let playlist=[], currentIndex=0, audioCtx, analyser, dataArray, rotation=0, isDragging=false, lastAngle=0, currentVol=0.8, isVolDragging=false;
 
 async function initAudio(){
     if(!audioCtx){
@@ -154,7 +155,7 @@ function draw(){
         analyser.getByteFrequencyData(dataArray);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.fillStyle="#fff";
-        bgGlow.style.opacity=0.1 + (dataArray[0]/255 * 0.4);
+        bgGlow.style.opacity=0.05 + (dataArray[0]/255 * (0.3 * currentVol));
         for(let i=0; i<8; i++){
             let h=(dataArray[i]/255)*canvas.height;
             ctx.beginPath();
@@ -193,8 +194,8 @@ const endS=()=>{
 cdAssembly.addEventListener('mousedown',startS); window.addEventListener('mousemove',moveS); window.addEventListener('mouseup',endS);
 cdAssembly.addEventListener('touchstart',startS); window.addEventListener('touchmove',moveS); window.addEventListener('touchend',endS);
 
-// SLIDABLE VOLUME LOGIC
-const handleVol = e => {
+// ENHANCED VOLUME SLIDER
+const updateVolume = e => {
     const rect = volHitbox.getBoundingClientRect();
     const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
     const p = Math.max(0, Math.min(1, x / rect.width));
@@ -204,12 +205,12 @@ const handleVol = e => {
     cardVideo.volume = p;
 };
 
-volHitbox.addEventListener('mousedown', e => { isVolDragging = true; handleVol(e); });
-volHitbox.addEventListener('touchstart', e => { isVolDragging = true; handleVol(e); });
-window.addEventListener('mousemove', e => { if(isVolDragging) handleVol(e); });
-window.addEventListener('touchmove', e => { if(isVolDragging) handleVol(e); });
-window.addEventListener('mouseup', () => { isVolDragging = false; });
-window.addEventListener('touchend', () => { isVolDragging = false; });
+volHitbox.addEventListener('mousedown', e => { isVolDragging = true; updateVolume(e); });
+volHitbox.addEventListener('touchstart', e => { isVolDragging = true; updateVolume(e); });
+window.addEventListener('mousemove', e => { if(isVolDragging) updateVolume(e); });
+window.addEventListener('touchmove', e => { if(isVolDragging) updateVolume(e); });
+window.addEventListener('mouseup', () => isVolDragging = false);
+window.addEventListener('touchend', () => isVolDragging = false);
 
 // CONTROLS
 document.getElementById('playBtn').onclick=()=>{
@@ -222,7 +223,6 @@ document.getElementById('nextBtn').onclick=()=>loadTrack((currentIndex+1)%playli
 document.getElementById('prevBtn').onclick=()=>loadTrack((currentIndex-1+playlist.length)%playlist.length);
 document.getElementById('listToggle').onclick=()=>playlistPanel.classList.toggle('open');
 
-// MEDIA INPUT
 document.getElementById('mediaIn').onchange=e=>{
     Array.from(e.target.files).forEach(f=>{
         const type = f.type.startsWith('video') ? 'video' : 'audio';
