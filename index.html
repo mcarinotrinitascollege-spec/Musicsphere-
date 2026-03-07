@@ -11,26 +11,37 @@ body, html { width: 100%; height: 100%; background: var(--bg); display: flex; al
 .backlit-glow { position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); opacity: 0.15; border-radius: 50%; z-index: 1; }
 
 .video-bg { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display:none; filter: blur(20px) brightness(0.4); z-index:0; }
-.video-card { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display:none; filter: brightness(0.8); z-index:2; border-radius:50px; pointer-events:none; }
+
+/* The base video card - no dimming here, we handle it in the tint layer */
+.video-card { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display:none; filter: brightness(1); z-index:2; border-radius:50px; pointer-events:none; }
 
 .card { position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 650px; background: #0a0514; border-radius: 50px; padding: 20px 25px; display: flex; flex-direction: column; align-items: center; border: 1.5px solid rgba(255, 255, 255, 0.1); box-shadow: 0 15px 50px rgba(0,0,0,0.9); overflow: hidden; }
+
+/* *** NEW: The Global Tint Layer *** */
+/* Sits at Z: 3, above video (2) and below visualizer (11) and controls (15+) */
+.global-tint { position: absolute; inset: 0; background: rgba(10, 5, 20, 0.7); /* Base dimming */ mix-blend-mode: multiply; /* Blends the purple into the video shadows */ z-index: 3; pointer-events: none; }
+.global-tint::before { content: ""; position: absolute; inset: 0; background: rgba(148, 0, 211, 0.25); /* The purple tint */ mix-blend-mode: color; /* Specifically tints the video colors */ }
 
 .header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; z-index: 15; }
 .headtitle { font-size: 0.75rem; font-weight: 900; letter-spacing: 5px; color: #fff; text-transform: uppercase; animation: purpleBreath 4s ease-in-out infinite; }
 @keyframes purpleBreath { 0%,100%{opacity:0.3;text-shadow:0 0 0px var(--accent);}50%{opacity:0.8;text-shadow:0 0 15px var(--accent);} }
 
 .list-toggle { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; padding: 8px; display: flex; }
+
+/* Disk and HUD wrapper - Z: 15 to stay on top of the tint */
 .disk-wrapper { position: relative; width: 260px; height: 260px; flex-shrink: 0; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; z-index: 15; }
 
-.center-dimmer { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, rgba(0,0,0,0.75) 0%, transparent 85%); border-radius: 50%; z-index: 14; pointer-events: none; }
+/* We removed the .center-dimmer class */
 
 #cdAssembly { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(148,0,211,0.1) 0%,transparent 75%); border:2px solid rgba(255,255,255,0.08); cursor:grab; z-index:16; transform:rotate(var(--disk-rot)); will-change: transform; }
 #curved-text-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 17; transform: rotate(calc(var(--disk-rot) - 90deg)); }
-.curved-title { font-size: 8px; font-weight: 900; fill: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 3px; }
+.curved-title { font-size: 8px; font-weight: 900; fill: rgba(255,255,255,0.7); /* Slightly brighter for contrast against tinted video */ text-transform: uppercase; letter-spacing: 3px; }
 .hud-center { position: absolute; z-index: 18; pointer-events: none; text-align: center; }
 #track-counter { color:#fff;font-size:1.2rem;font-weight:900;opacity:0.4;letter-spacing:2px; }
 #time-display { position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-size:1.5rem;opacity:0;transition:opacity 0.2s;font-family:monospace; }
-canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0 8px rgba(148,0,211,0.6)); opacity:0.8; z-index: 15; }
+
+/* Visualizer at Z: 11, above the tint */
+canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0 8px rgba(148,0,211,0.6)); opacity:0.8; z-index: 11; }
 .controls { display:flex;align-items:center;gap:35px;margin-bottom:20px;z-index:20; }
 .icon-btn { background:none;border:none;width:30px;height:30px;fill:white;opacity:0.35;cursor:pointer; }
 .play-btn { width:65px;height:65px;background:rgba(148,0,211,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;filter: drop-shadow(0 0 12px rgba(148,0,211,0.5)) drop-shadow(0 0 1px #fff);cursor:pointer; }
@@ -52,6 +63,9 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 
 <div class="card">
     <video id="cardVideo" class="video-card" loop playsinline></video>
+    
+    <div class="global-tint"></div>
+
     <div class="backlit-glow" id="bgGlow"></div>
     
     <div class="header">
@@ -60,7 +74,6 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
     </div>
 
     <div class="disk-wrapper">
-        <div class="center-dimmer"></div>
         <div id="cdAssembly"></div>
         <svg id="curved-text-svg" viewBox="0 0 200 200"><defs><path id="diskPath" d="M100,100 m-85,0 a85,85 0 1,1 170,0 a85,85 0 1,1 -170,0"></path></defs><text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">AWAITING INPUT</textPath></text></svg>
         <div class="hud-center"><div id="track-counter">0 / 0</div><div id="time-display">0:00</div></div>
@@ -86,6 +99,9 @@ canvas { width: 100%; height: 70px; margin-bottom: 20px; filter: drop-shadow(0 0
 <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
+// Logic remains identical to your working version, just ensuring 
+// the video elements play unmuted and synchronize with volume.
+
 const audio=document.getElementById('player'), bgVideo=document.getElementById('bgVideo'), cardVideo=document.getElementById('cardVideo');
 const canvas=document.getElementById('viz'), ctx=canvas.getContext('2d'), vFil=document.getElementById('vFil');
 const cdAssembly=document.getElementById('cdAssembly'), songLabel=document.getElementById('songLabel'), trackCounter=document.getElementById('track-counter');
@@ -122,12 +138,15 @@ function loadTrack(index){
     if(track.type==='video'){
         cardVideo.src=track.url; bgVideo.src=track.url;
         cardVideo.style.display='block'; bgVideo.style.display='block';
+        // Apply volume to video
         cardVideo.volume = currentVol;
         cardVideo.play().catch(()=>{});
         bgVideo.play().catch(()=>{});
     } else {
         cardVideo.style.display='none'; bgVideo.style.display='none';
-        audio.src=track.url; audio.volume = currentVol;
+        audio.src=track.url;
+        // Apply volume to audio
+        audio.volume = currentVol;
         audio.play().catch(()=>{});
     }
     playIcon.innerHTML='<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
@@ -155,7 +174,8 @@ function draw(){
         analyser.getByteFrequencyData(dataArray);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.fillStyle="#fff";
-        bgGlow.style.opacity=0.05 + (dataArray[0]/255 * (0.3 * currentVol));
+        // Slightly dimmer glow sensitivity for tinted background
+        bgGlow.style.opacity=0.03 + (dataArray[0]/255 * (0.25 * currentVol));
         for(let i=0; i<8; i++){
             let h=(dataArray[i]/255)*canvas.height;
             ctx.beginPath();
@@ -194,13 +214,14 @@ const endS=()=>{
 cdAssembly.addEventListener('mousedown',startS); window.addEventListener('mousemove',moveS); window.addEventListener('mouseup',endS);
 cdAssembly.addEventListener('touchstart',startS); window.addEventListener('touchmove',moveS); window.addEventListener('touchend',endS);
 
-// ENHANCED VOLUME SLIDER
+// VOLUME SLIDER (Unified Audio/Video)
 const updateVolume = e => {
     const rect = volHitbox.getBoundingClientRect();
     const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
     const p = Math.max(0, Math.min(1, x / rect.width));
     currentVol = p;
     vFil.style.width = (p * 100) + '%';
+    // Update both sources simultaneously
     audio.volume = p;
     cardVideo.volume = p;
 };
