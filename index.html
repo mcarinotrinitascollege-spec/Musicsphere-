@@ -76,27 +76,14 @@
         .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; transition: opacity 0.3s; }
 
-        canvas { width: 100%; height: 60px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
+        canvas { width: 100%; height: 70px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
 
         .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 30px; letter-spacing: 4px; background: rgba(0,0,0,0.2); transition: 0.4s; }
 
-        /* REPOSITIONED: Horizontal Volume Bar above controls */
-        .vol-container {
-            width: 200px; height: 10px; z-index: 40; transition: 0.4s;
-            margin-bottom: 35px; /* Space between volume and controls */
-        }
-        .vol-track {
-            width: 100%; height: 100%; background: rgba(255,255,255,0.05);
-            border-radius: 20px; position: relative; overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .vol-fill {
-            position: absolute; left: 0; top: 0; height: 100%; width: 70%;
-            background: linear-gradient(to right, #b19cd9, #ffffff);
-            border-radius: 20px; transition: width 0.1s ease;
-        }
+        .vol-container { width: 200px; height: 10px; z-index: 40; transition: 0.4s; margin-bottom: 35px; }
+        .vol-track { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; transition: width 0.1s ease; }
         
-        /* SHIFTED DOWNWARD: Controls with extra space */
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
         
@@ -105,12 +92,10 @@
             border-radius: 50%; display: flex; align-items: center; justify-content: center; 
             border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: 0.3s;
         }
-        .play-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.2); }
 
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(255, 255, 255, 0.05); 
-            backdrop-filter: blur(40px) brightness(1.2); -webkit-backdrop-filter: blur(40px) brightness(1.2);
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(40px) brightness(1.2); -webkit-backdrop-filter: blur(40px) brightness(1.2);
             border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 1000; 
             transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
         }
@@ -141,6 +126,7 @@
     </div>
 
     <canvas id="viz"></canvas>
+    
     <label class="load-btn">INSERT MEDIA<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
 
     <div class="vol-container" id="volHitbox">
@@ -184,6 +170,7 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
+    // U-SHAPED VISUALIZER
     function draw() {
         requestAnimationFrame(draw);
         const active = getActive();
@@ -191,16 +178,30 @@
             rotation += 0.3; 
             document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`); 
         }
+
         if (analyser && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const numBars = 12, gap = 6;
-            const barW = (canvas.width / 2 - (numBars * gap)) / numBars;
+            
+            const numBars = 20; 
+            const gap = 4;
+            const barW = (canvas.width - (numBars * gap)) / numBars;
+
             for (let i = 0; i < numBars; i++) {
-                let val = (dataArray[i] / 255) * canvas.height;
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + (val/canvas.height)})`;
-                ctx.beginPath(); ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 10);
-                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - val, barW, val, 10); ctx.fill();
+                // Determine distance from center (1.0 at edges, 0.0 at center)
+                const centerDist = Math.abs(i - (numBars - 1) / 2) / ((numBars - 1) / 2);
+                
+                // Map frequency data to edges
+                let rawVal = dataArray[Math.floor((1 - centerDist) * 15)]; 
+                
+                // Parabolic multiplier: center bars stay low (20%), edges go high (100%)
+                let uMultiplier = 0.2 + (Math.pow(centerDist, 2) * 0.8);
+                let val = (rawVal / 255) * canvas.height * uMultiplier;
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (uMultiplier * 0.5)})`;
+                ctx.beginPath();
+                ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 15);
+                ctx.fill();
             }
         }
     }
@@ -277,7 +278,6 @@
         });
     };
 
-    // UPDATED: Horizontal Volume Interaction
     function setV(e) {
         const r = volHitbox.getBoundingClientRect();
         const p = e.touches ? e.touches[0] : e;
