@@ -6,11 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#b19cd9">
-    <link rel="manifest" href="manifest.json">
     
     <title>Musicsphere Pro</title>
     <style>
-        :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; }
+        :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; --milky-purple: rgba(230, 224, 255, 0.4); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html { 
@@ -20,7 +19,6 @@
         }
 
         .video-bg { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; display: none; filter: blur(40px) brightness(1.3); z-index: 0; opacity: 0.65; pointer-events: none; }
-        
         .video-card-inner { 
             position: absolute; inset: 0; width: 100%; height: 100%; 
             object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.8s ease, filter 0.8s ease; 
@@ -37,26 +35,16 @@
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Long Press / Stealth States */
-        .card.is-stealth .headtitle, 
-        .card.is-stealth canvas, 
-        .card.is-stealth .load-btn, 
-        .card.is-stealth .vol-container,
-        .card.is-stealth #listToggle,
-        .card.is-expanded .headtitle,
-        .card.is-expanded .disk-wrapper,
-        .card.is-expanded canvas,
-        .card.is-expanded .load-btn,
-        .card.is-expanded .vol-container,
-        .card.is-expanded .controls,
+        .card.is-stealth .headtitle, .card.is-stealth canvas, .card.is-stealth .load-btn, 
+        .card.is-stealth .vol-container, .card.is-stealth #listToggle,
+        .card.is-expanded .headtitle, .card.is-expanded .disk-wrapper,
+        .card.is-expanded canvas, .card.is-expanded .load-btn,
+        .card.is-expanded .vol-container, .card.is-expanded .controls,
         .card.is-expanded #listToggle { 
             opacity: 0; pointer-events: none; transform: translateY(10px); 
         }
 
-        .card.is-expanded .video-card-inner {
-            opacity: 1 !important;
-            filter: brightness(1) contrast(1);
-        }
+        .card.is-expanded .video-card-inner { opacity: 1 !important; filter: brightness(1) contrast(1); }
 
         @keyframes titleBreath {
             0%, 100% { opacity: 0.3; transform: scale(1); filter: blur(0px); }
@@ -82,40 +70,33 @@
 
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 75%);
-            border: 1.5px solid rgba(255, 255, 255, 0.4); cursor: grab; z-index: 5;
+            /* Updated background to a milky purple radial */
+            background: radial-gradient(circle, rgba(230, 224, 255, 0.08) 0%, transparent 75%);
+            border: none; cursor: grab; z-index: 5;
             transform: rotate(var(--disk-rot));
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
-            transition: box-shadow 0.1s ease, border-color 0.1s ease;
+            /* Reduced initial glow brightness */
+            box-shadow: 0 0 20px rgba(230, 224, 255, 0.12);
         }
 
         #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
-        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 3px; }
+        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(230, 224, 255, 0.3); text-transform: uppercase; letter-spacing: 3px; }
 
         .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; transition: opacity 0.3s; }
 
         canvas { width: 100%; height: 70px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
-
         .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 30px; letter-spacing: 4px; background: rgba(0,0,0,0.2); transition: 0.4s; }
-
-        .vol-container { width: 200px; height: 10px; z-index: 40; transition: 0.4s; margin-bottom: 35px; }
+        .vol-container { width: 200px; height: 10px; z-index: 40; transition: 0.4s; margin-bottom: 35px; cursor: pointer;}
         .vol-track { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; transition: width 0.1s ease; }
+        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; }
         
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; transition: 0.4s; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
-        
-        .play-btn { 
-            width: 65px; height: 65px; background: rgba(255, 255, 255, 0.1); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: 0.3s;
-        }
+        .play-btn { width: 65px; height: 65px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: 0.3s; }
 
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(10, 5, 15, 0.25); 
-            backdrop-filter: blur(60px) brightness(1.1); -webkit-backdrop-filter: blur(60px) brightness(1.1);
+            background: rgba(10, 5, 15, 0.25); backdrop-filter: blur(60px) brightness(1.1); 
             border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 1000; 
             transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
         }
@@ -165,14 +146,6 @@
 <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('SW Registered'))
-          .catch(err => console.log('SW Failed', err));
-      });
-    }
-
     const audio = document.getElementById('player'), cardVideo = document.getElementById('cardVideo'), bgVideo = document.getElementById('bgVideo');
     const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
     const songLabel = document.getElementById('songLabel'), timeDisplay = document.getElementById('time-display');
@@ -181,6 +154,7 @@
     const playerCard = document.getElementById('playerCard');
 
     let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0;
+    let audioSourceNode, videoSourceNode;
 
     const getActive = () => playlist[currentIndex]?.type === 'video' ? cardVideo : audio;
 
@@ -189,30 +163,32 @@
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 256; 
-            const audioSrc = audioCtx.createMediaElementSource(audio);
-            const videoSrc = audioCtx.createMediaElementSource(cardVideo);
-            audioSrc.connect(analyser); videoSrc.connect(analyser);
+            audioSourceNode = audioCtx.createMediaElementSource(audio);
+            videoSourceNode = audioCtx.createMediaElementSource(cardVideo);
+            audioSourceNode.connect(analyser);
+            videoSourceNode.connect(analyser);
             analyser.connect(audioCtx.destination);
             dataArray = new Uint8Array(analyser.frequencyBinCount);
         }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
     }
 
     function draw() {
         requestAnimationFrame(draw);
         const active = getActive();
-        if (active.src && !active.paused && !isDragging) { 
+        if (active && active.src && !active.paused && !isDragging) { 
             rotation += 0.3; 
             document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`); 
         }
 
-        if (analyser && !active.paused) {
+        if (analyser && active && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
 
             const bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
             const bassNorm = bass / 255;
-            cdAssembly.style.boxShadow = `0 0 ${25 + (bassNorm * 35)}px rgba(255, 255, 255, ${0.15 + (bassNorm * 0.45)})`;
-            cdAssembly.style.borderColor = `rgba(255, 255, 255, ${0.4 + (bassNorm * 0.6)})`;
+            
+            // Updated Reactive backlight: reduced brightness + milky purple tone
+            cdAssembly.style.boxShadow = `0 0 ${20 + (bassNorm * 25)}px rgba(230, 224, 255, ${0.12 + (bassNorm * 0.25)})`;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const numBars = 45; 
@@ -223,7 +199,7 @@
                 let rawVal = dataArray[Math.floor((1 - centerDist) * 35)]; 
                 let uMultiplier = 0.2 + (Math.pow(centerDist, 2) * 0.8);
                 let val = (rawVal / 255) * canvas.height * uMultiplier;
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (uMultiplier * 0.5)})`;
+                ctx.fillStyle = `rgba(230, 224, 255, ${0.2 + (uMultiplier * 0.4)})`;
                 ctx.beginPath();
                 ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 15);
                 ctx.fill();
@@ -232,29 +208,16 @@
     }
     draw();
 
-    let pressTimer;
-    const startPress = (e) => {
-        if (playlist[currentIndex]?.type !== 'video') return;
-        pressTimer = setTimeout(() => playerCard.classList.add('is-expanded'), 500);
-    };
-    const endPress = () => {
-        clearTimeout(pressTimer);
-        playerCard.classList.remove('is-expanded');
-    };
-
-    playerCard.addEventListener('mousedown', startPress);
-    playerCard.addEventListener('touchstart', startPress, {passive: true});
-    window.addEventListener('mouseup', endPress);
-    window.addEventListener('touchend', endPress);
-
     function loadTrack(index) {
         if (!playlist.length) return;
         currentIndex = (index + playlist.length) % playlist.length;
         const track = playlist[currentIndex];
         audio.pause(); cardVideo.pause();
+        audio.src = ""; cardVideo.src = "";
         const active = getActive();
         songLabel.textContent = track.name.toUpperCase();
         active.src = track.url;
+        active.load();
         if(track.type === 'video') {
             cardVideo.style.opacity = '1'; bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play().catch(()=>{});
             stealthToggle.style.display = 'block';
@@ -264,46 +227,6 @@
         }
         active.play().then(() => playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>').catch(()=>{});
     }
-
-    function getAngle(e) {
-        const r = cdAssembly.getBoundingClientRect();
-        const p = e.touches ? e.touches[0] : e;
-        return Math.atan2(p.clientY-(r.top+r.height/2), p.clientX-(r.left+r.width/2)) * 180 / Math.PI;
-    }
-
-    const startS = (e) => {
-        const active = getActive(); if(!active.src) return;
-        isDragging = true; lastAngle = getAngle(e);
-        active.pause(); timeDisplay.style.opacity = '1';
-    };
-
-    const moveS = (e) => {
-        if(!isDragging) return;
-        const active = getActive(); const angle = getAngle(e);
-        let delta = angle - lastAngle;
-        if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
-        rotation += delta;
-        document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
-        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.1)));
-        timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
-        lastAngle = angle;
-    };
-
-    const endS = () => { if(!isDragging) return; isDragging = false; timeDisplay.style.opacity = '0'; getActive().play(); };
-
-    cdAssembly.addEventListener('mousedown', startS); window.addEventListener('mousemove', moveS); window.addEventListener('mouseup', endS);
-    cdAssembly.addEventListener('touchstart', startS, {passive: false}); window.addEventListener('touchmove', moveS, {passive: false}); window.addEventListener('touchend', endS);
-
-    document.getElementById('prevBtn').onclick = () => loadTrack(currentIndex - 1);
-    document.getElementById('nextBtn').onclick = () => loadTrack(currentIndex + 1);
-    document.getElementById('listToggle').onclick = () => playlistPanel.classList.toggle('open');
-    stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
-
-    document.getElementById('playBtn').onclick = async () => {
-        await initAudio(); const a = getActive();
-        if(a.paused) { a.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
-        else { a.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
-    };
 
     document.getElementById('audIn').onchange = (e) => {
         Array.from(e.target.files).forEach(f => {
@@ -317,6 +240,39 @@
             trackListUI.appendChild(div);
         });
     };
+
+    document.getElementById('playBtn').onclick = async () => {
+        await initAudio(); const a = getActive();
+        if(!a.src) return;
+        if(a.paused) { a.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
+        else { a.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
+    };
+
+    function getAngle(e) {
+        const r = cdAssembly.getBoundingClientRect();
+        const p = e.touches ? e.touches[0] : e;
+        return Math.atan2(p.clientY-(r.top+r.height/2), p.clientX-(r.left+r.width/2)) * 180 / Math.PI;
+    }
+    const startS = (e) => { const active = getActive(); if(!active || !active.src) return; isDragging = true; lastAngle = getAngle(e); active.pause(); timeDisplay.style.opacity = '1'; };
+    const moveS = (e) => {
+        if(!isDragging) return;
+        const active = getActive(); const angle = getAngle(e);
+        let delta = angle - lastAngle;
+        if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
+        rotation += delta;
+        document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
+        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.1)));
+        timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
+        lastAngle = angle;
+    };
+    const endS = () => { if(!isDragging) return; isDragging = false; timeDisplay.style.opacity = '0'; getActive().play(); };
+    cdAssembly.addEventListener('mousedown', startS); window.addEventListener('mousemove', moveS); window.addEventListener('mouseup', endS);
+    cdAssembly.addEventListener('touchstart', startS, {passive: false}); window.addEventListener('touchmove', moveS, {passive: false}); window.addEventListener('touchend', endS);
+
+    document.getElementById('prevBtn').onclick = () => loadTrack(currentIndex - 1);
+    document.getElementById('nextBtn').onclick = () => loadTrack(currentIndex + 1);
+    document.getElementById('listToggle').onclick = () => playlistPanel.classList.toggle('open');
+    stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
 
     function setV(e) {
         const r = volHitbox.getBoundingClientRect();
