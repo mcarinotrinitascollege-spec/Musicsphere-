@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Musicsphere Pro</title>
+    <title>Musicsphere Lunar Pro</title>
     <style>
-        :root { --accent: #9400D3; --powder-purple: #b19cd9; --bg: #020004; --disk-rot: 0deg; }
+        :root { --accent: #9400D3; --powder-white: rgba(240, 240, 255, 0.4); --bg: #020004; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html { 
@@ -44,52 +44,63 @@
         }
         body.is-fullscreen #exitFS { opacity: 1; pointer-events: auto; }
 
-        /* THE HALO GLOW - Only visible OUTSIDE the disk */
+        /* LUNAR ECLIPSE GLOW */
         .disk-backglow {
-            position: absolute; width: 380px; height: 380px;
-            background: var(--powder-purple); filter: blur(40px);
-            border-radius: 50%; z-index: 15; opacity: 0;
+            position: absolute; width: 260px; height: 260px;
+            background: transparent;
+            border-radius: 50%; z-index: 15;
+            box-shadow: 0 0 50px 5px rgba(177, 156, 217, 0.4);
             pointer-events: none;
-            /* Masking out the center 250px so glow is only outside */
-            -webkit-mask-image: radial-gradient(circle, transparent 125px, black 126px);
-            mask-image: radial-gradient(circle, transparent 125px, black 126px);
-            transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+            opacity: 0.2;
         }
 
         .headtitle {
             position: absolute; top: 45px; left: 35px;
             font-size: 0.7rem; font-weight: 900; letter-spacing: 8px; color: #fff;
-            text-transform: uppercase; z-index: 25; animation: breathe 5s ease-in-out infinite;
+            text-transform: uppercase; z-index: 25; opacity: 0.2;
         }
-        @keyframes breathe { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.6; } }
 
-        .header { width: 100%; display: flex; justify-content: flex-end; margin-bottom: 45px; z-index: 20; padding-top: 10px; }
-        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.3; padding: 8px; }
+        .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 45px; z-index: 20; padding-top: 10px; gap: 10px; }
+        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.3; padding: 8px; transition: opacity 0.3s; }
+        .icon-nav:hover { opacity: 0.8; }
+
+        .stagger { transition: opacity 0.4s ease, transform 0.4s ease; }
+        .card.is-stealth .stagger { opacity: 0 !important; pointer-events: none; transform: translateY(10px); }
 
         .disk-wrapper { 
             position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 20px;
             display: flex; align-items: center; justify-content: center; z-index: 20;
         }
+        
+        /* SMOKED TRANSPARENT DISK */
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            /* DARK TINTED INNER DISK */
-            background: rgba(5, 2, 10, 0.95);
+            background: rgba(10, 5, 20, 0.45);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.08); cursor: grab; z-index: 17;
             transform: rotate(var(--disk-rot));
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
         }
 
         #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 18; transform: rotate(calc(var(--disk-rot) - 90deg)); }
-        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 3px; }
+        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
 
         #time-display { position: absolute; z-index: 19; color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; pointer-events: none; }
 
-        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.7; z-index: 20; } 
+        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.5; z-index: 20; } 
         .load-btn { font-size: 0.55rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; letter-spacing: 5px; z-index: 20; }
         
         .vol-wrap { width: 100%; padding: 5px 0; cursor: pointer; z-index: 40; margin-bottom: 10px; }
         .vol-track { height: 32px; background: rgba(255,255,255,0.02); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .vol-fill { height: 100%; background: linear-gradient(to right, transparent, var(--accent)); border-right: 1.5px solid #fff; width: 70%; pointer-events: none; }
+        
+        /* POWDER WHITE SEMI-TRANSPARENT */
+        .vol-fill { 
+            height: 100%; 
+            background: rgba(240, 240, 255, 0.15); 
+            border-right: 1px solid rgba(255, 255, 255, 0.2); 
+            width: 70%; pointer-events: none; 
+        }
         
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 10px; z-index: 30; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
@@ -98,9 +109,8 @@
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
             background: rgba(255, 255, 255, 0.01); 
-            backdrop-filter: blur(80px) contrast(1.2) brightness(0.9); 
-            -webkit-backdrop-filter: blur(80px) contrast(1.2) brightness(0.9);
-            border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 40px 40px 0 0; z-index: 1000; 
+            backdrop-filter: blur(80px) contrast(1.2) brightness(0.9); -webkit-backdrop-filter: blur(80px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 1000; 
             transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
         }
         #playlist-panel.open { bottom: 0; }
@@ -121,6 +131,7 @@
     <div class="headtitle">MUSICSPHERE</div>
     
     <div class="header stagger">
+        <button class="icon-nav" id="stealthToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="icon-nav" id="listToggle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg></button>
     </div>
     
@@ -129,13 +140,13 @@
         <div id="cdAssembly"></div>
         <svg id="curved-text-svg" viewBox="0 0 200 200">
             <defs><path id="diskPath" d="M 100, 100 m -85, 0 a 85,85 0 1,1 170,0 a 85,85 0 1,1 -170,0"></path></defs>
-            <text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">AWAITING INPUT</textPath></text>
+            <text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">INSERT MEDIA</textPath></text>
         </svg>
         <div id="time-display">0:00</div>
     </div>
 
     <canvas id="viz" class="stagger"></canvas>
-    <label class="load-btn stagger">INSERT<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
+    <label class="load-btn stagger">LOAD<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
     
     <div class="vol-wrap stagger" id="volHitbox"><div class="vol-track"><div class="vol-fill" id="vFil"></div></div></div>
 
@@ -156,7 +167,7 @@
     const ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly'), songLabel = document.getElementById('songLabel');
     const timeDisplay = document.getElementById('time-display'), glowPulse = document.getElementById('glowPulse'), playIcon = document.getElementById('playIcon');
     const vFil = document.getElementById('vFil'), volHitbox = document.getElementById('volHitbox'), playlistPanel = document.getElementById('playlist-panel');
-    const trackListUI = document.getElementById('track-list');
+    const trackListUI = document.getElementById('track-list'), playerCard = document.getElementById('playerCard'), stealthToggle = document.getElementById('stealthToggle');
 
     let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0, wasPlaying = false, pressTimer, sX, sY;
 
@@ -183,9 +194,9 @@
             analyser.getByteFrequencyData(dataArray);
             let bSum = 0; for(let i=0; i<4; i++) bSum += dataArray[i];
             const bI = (bSum / 4) / 255;
-            // HALO PULSE: Scale and Opacity outside the circle
-            glowPulse.style.transform = `scale(${1 + (bI * 0.15)})`;
-            glowPulse.style.opacity = 0.05 + (bI * 0.35);
+            
+            glowPulse.style.transform = `scale(${1 + (bI * 0.2)})`;
+            glowPulse.style.opacity = 0.15 + (bI * 0.5);
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const num = 10, gap = 8, bw = (canvas.width / 2 - (num * gap)) / num;
@@ -257,6 +268,9 @@
     };
 
     exitFS.onclick = () => document.body.classList.remove('is-fullscreen');
+    playerCard.onclick = () => playerCard.classList.remove('is-stealth');
+    stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
+    
     cdAssembly.addEventListener('mousedown', startS);
     window.addEventListener('mousemove', moveS);
     window.addEventListener('mouseup', endS);
@@ -264,7 +278,7 @@
     window.addEventListener('touchmove', moveS, {passive: false});
     window.addEventListener('touchend', endS);
 
-    document.getElementById('listToggle').onclick = () => playlistPanel.classList.toggle('open');
+    document.getElementById('listToggle').onclick = (e) => { e.stopPropagation(); playlistPanel.classList.toggle('open'); };
     document.getElementById('playBtn').onclick = () => {
         initAudio(); const a = getActive();
         if(a.paused) { a.play(); if(bgVideo.src) bgVideo.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
