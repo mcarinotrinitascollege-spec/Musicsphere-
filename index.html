@@ -3,69 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Musicsphere Pro | Cinematic Full</title>
+    <title>Musicsphere Pro | Cinematic Expansion</title>
     <style>
         :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; --milky-purple: rgba(230, 224, 255, 0.4); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-family: sans-serif; overflow: hidden; touch-action: none; }
         
-        /* Background Video - Becomes the Full Player on Expansion */
+        /* THE BACKGROUND PLAYER: Rectangle with dynamic blur/rounded corners */
         .video-bg { 
+            position: absolute; 
+            inset: -5%; 
+            width: 110%; 
+            height: 110%; 
+            object-fit: cover; 
+            display: none; 
+            filter: blur(40px) brightness(0.4); /* Dimmed and blurred when UI is present */
+            z-index: 0; 
+            opacity: 0.6; 
+            pointer-events: none; 
+            transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        /* EXPANSION FEATURE: Revealed Rectangular Player */
+        body:has(.is-expanded) .video-bg {
+            inset: 10%; 
+            width: 80%; 
+            height: 80%; 
+            filter: blur(0px) brightness(1); /* Sharp and Bright */
+            opacity: 1;
+            z-index: 100;
+            border-radius: 40px; /* Rounded Rectangle */
+            box-shadow: 0 0 100px rgba(0,0,0,1), 0 0 0 2000px rgba(0,0,0,0.9); /* Letterbox effect */
+            pointer-events: auto;
+        }
+
+        /* Video Card Layer - Always blurred/dimmed inside the card UI */
+        .video-card-inner { 
             position: absolute; 
             inset: 0; 
             width: 100%; 
             height: 100%; 
             object-fit: cover; 
-            display: none; 
-            filter: blur(20px) brightness(0.6); 
-            z-index: 0; 
-            opacity: 0.5; 
-            pointer-events: none;
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1; 
+            opacity: 0; 
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); 
+            filter: brightness(0.35) blur(10px); 
+            pointer-events: none; 
         }
         
-        /* Expansion state for Background Video */
-        body:has(.is-expanded) .video-bg {
-            filter: blur(0px) brightness(1);
-            opacity: 1;
-            z-index: 100; /* Moves above the card */
-            pointer-events: auto;
-        }
-
-        .video-card-inner { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0; transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); filter: brightness(0.4) blur(5px); pointer-events: none; }
+        .card { position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 680px; background: rgba(15, 8, 25, 0.9); border-radius: 50px; padding: 25px; display: flex; flex-direction: column; align-items: center; border: 1.5px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        .card { position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 680px; background: rgba(15, 8, 25, 0.9); border-radius: 50px; padding: 25px; display: flex; flex-direction: column; align-items: center; border: 1.5px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
-        
-        /* Stealth Logic */
+        /* Stealth: Blur 0, Dim 0.3, Hide UI */
         .card.is-stealth .video-card-inner { filter: brightness(0.3) blur(0px); opacity: 1; }
         .card.is-stealth .headtitle, .card.is-stealth canvas, .card.is-stealth .load-btn, .card.is-stealth .vol-container, .card.is-stealth #listToggle, .card.is-stealth .disk-wrapper, .card.is-stealth .controls { opacity: 0; pointer-events: none; transform: scale(0.9); }
         
-        /* Expansion Logic: The Card itself becomes invisible to show the BG video */
-        .card.is-expanded { 
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(1.1);
-        }
+        /* Expansion: Hide UI Card entirely to show the Rectangular BG player */
+        .card.is-expanded { opacity: 0; pointer-events: none; transform: scale(0.95); }
 
         @keyframes titleBreath { 0%, 100% { opacity: 0.3; transform: scale(1); filter: blur(0px); } 50% { opacity: 0.8; transform: scale(1.02); filter: blur(1px); color: var(--accent); } }
         .headtitle { position: absolute; top: 45px; left: 30px; font-size: 0.75rem; font-weight: 900; letter-spacing: 6px; color: #fff; text-transform: uppercase; z-index: 25; animation: titleBreath 4s ease-in-out infinite; transition: 0.4s; }
         .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 35px; z-index: 30; padding-top: 10px; gap: 10px; }
+        
         #stealthToggle { display: none; background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; z-index: 35; transition: 0.3s; }
         #listToggle { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: 0.4s; }
+        
         .disk-wrapper { position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; z-index: 20; transition: all 0.4s; }
         #cdAssembly { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(230, 224, 255, 0.08) 0%, transparent 75%); border: none; cursor: grab; z-index: 5; transform: rotate(var(--disk-rot)); box-shadow: 0 0 20px rgba(230, 224, 255, 0.12); }
         #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
         .curved-title { font-size: 7px; font-weight: 900; fill: rgba(230, 224, 255, 0.3); text-transform: uppercase; letter-spacing: 3px; }
         .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; transition: opacity 0.3s; }
+        
         canvas { width: 100%; height: 70px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
         .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 30px; letter-spacing: 4px; background: rgba(0,0,0,0.2); transition: 0.4s; }
+        
         .vol-container { width: 200px; height: 10px; z-index: 40; transition: 0.4s; margin-bottom: 35px; cursor: pointer;}
         .vol-track { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; }
+        
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; transition: 0.4s; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
         .play-btn { width: 65px; height: 65px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: 0.3s; }
+        
         #playlist-panel { position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; background: rgba(10, 5, 15, 0.4); backdrop-filter: blur(60px) brightness(1.1); -webkit-backdrop-filter: blur(60px) brightness(1.1); border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 5000; transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; }
         #playlist-panel.open { bottom: 0; }
         .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.7); font-size: 0.8rem; background: rgba(255,255,255,0.05); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
@@ -152,7 +171,7 @@
     }
     draw();
 
-    // Expansion Trigger
+    // Long Press Expansion logic
     let pressTimer;
     playerCard.addEventListener('mousedown', (e) => { 
         if(e.target.closest('button') || e.target.closest('#playlist-panel')) return;
@@ -165,13 +184,10 @@
     window.addEventListener('mouseup', () => clearTimeout(pressTimer));
     window.addEventListener('touchend', () => clearTimeout(pressTimer));
     
-    // Tap BG or Card to exit
-    window.addEventListener('click', (e) => {
-        if (playerCard.classList.contains('is-expanded')) {
-            playerCard.classList.remove('is-expanded');
-        } else if (e.target.closest('.card') && playerCard.classList.contains('is-stealth')) {
-            playerCard.classList.remove('is-stealth');
-        }
+    // Tap anywhere to exit Expansion or Stealth
+    window.addEventListener('click', (e) => { 
+        if (playerCard.classList.contains('is-expanded')) playerCard.classList.remove('is-expanded');
+        else if (e.target.closest('.card') && playerCard.classList.contains('is-stealth')) playerCard.classList.remove('is-stealth');
     });
 
     function loadTrack(index) {
@@ -185,10 +201,7 @@
         active.src = track.url;
         active.load();
         if(track.type === 'video') {
-            cardVideo.style.opacity = '1'; 
-            bgVideo.src = track.url; 
-            bgVideo.style.display = 'block'; 
-            bgVideo.play();
+            cardVideo.style.opacity = '1'; bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play();
             stealthToggle.style.display = 'block';
         } else {
             cardVideo.style.opacity = '0'; bgVideo.style.display = 'none'; stealthToggle.style.display = 'none';
