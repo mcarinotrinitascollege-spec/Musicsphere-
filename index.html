@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Musicsphere Pro</title>
     <style>
-        :root { --accent: #9400D3; --bg: #05010a; --disk-rot: 0deg; }
+        :root { --accent: #9400D3; --powder-purple: #b19cd9; --bg: #05010a; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html { 
@@ -27,20 +27,14 @@
             transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1);
         }
 
-        body.is-fullscreen .card {
-            width: 100vw; height: 100vh; max-width: none; border-radius: 0; padding: 0; border: none;
-        }
+        body.is-fullscreen .card { width: 100vw; height: 100vh; max-width: none; border-radius: 0; padding: 0; border: none; }
         body.is-fullscreen .card-video-overlay { background: rgba(0,0,0,0.2); }
         body.is-fullscreen .stagger { opacity: 0 !important; pointer-events: none; }
 
-        .card-video-container {
-            position: absolute; inset: 0; width: 100%; height: 100%;
-            z-index: 2; overflow: hidden; display: none;
-        }
+        .card-video-container { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; overflow: hidden; display: none; }
         .card-video-container video { width: 100%; height: 100%; object-fit: cover; }
         .card-video-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); z-index: 3; transition: background 0.5s ease; }
 
-        /* EXIT BUTTON */
         #exitFS {
             position: fixed; top: 30px; left: 30px; z-index: 2000;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
@@ -50,30 +44,27 @@
         }
         body.is-fullscreen #exitFS { opacity: 1; pointer-events: auto; }
 
-        /* Pulsing Glow */
-        .backlit-glow { 
-            position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); 
-            opacity: 0.15; border-radius: 50%; z-index: 1; 
-            transition: transform 0.05s linear, opacity 0.05s linear;
+        /* Dedicated Backglow behind the disk */
+        .disk-backglow {
+            position: absolute; width: 220px; height: 220px;
+            background: var(--powder-purple); filter: blur(50px);
+            border-radius: 50%; z-index: 15; opacity: 0.1;
+            pointer-events: none;
+            transition: transform 0.1s ease-out, opacity 0.1s ease-out;
         }
 
         .headtitle {
             position: absolute; top: 45px; left: 30px;
             font-size: 0.75rem; font-weight: 900; letter-spacing: 6px; color: #fff;
-            text-transform: uppercase; z-index: 25;
-            animation: breathe 4s ease-in-out infinite;
+            text-transform: uppercase; z-index: 25; animation: breathe 4s ease-in-out infinite;
         }
-        
-        @keyframes breathe {
-            0%, 100% { opacity: 0.2; transform: scale(1); filter: blur(1px); }
-            50% { opacity: 0.8; transform: scale(1.02); filter: blur(0px); text-shadow: 0 0 15px var(--accent); }
-        }
+        @keyframes breathe { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.8; text-shadow: 0 0 15px var(--accent); } }
 
         .stagger { transition: opacity 0.4s ease, transform 0.4s ease; pointer-events: auto; }
         .card.is-stealth .stagger { opacity: 0 !important; pointer-events: none; transform: translateY(15px); }
 
         .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 45px; z-index: 20; padding-top: 10px; gap: 10px; }
-        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: opacity 0.2s; }
+        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; }
         #stealthToggle { display: none; } 
 
         .disk-wrapper { 
@@ -82,35 +73,26 @@
         }
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            background: radial-gradient(circle, rgba(148, 0, 211, 0.1) 0%, transparent 75%);
-            border: 2px solid rgba(255, 255, 255, 0.1); cursor: grab; z-index: 5;
+            background: radial-gradient(circle, rgba(148, 0, 211, 0.05) 0%, transparent 80%);
+            border: 1.5px solid rgba(255, 255, 255, 0.1); cursor: grab; z-index: 16;
             transform: rotate(var(--disk-rot));
         }
 
-        #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
+        #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 18; transform: rotate(calc(var(--disk-rot) - 90deg)); }
         .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
 
-        .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
+        .hud-center { position: absolute; z-index: 19; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; text-shadow: 0 0 20px var(--accent); }
 
         canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.9; z-index: 20; position: relative; } 
-
         .load-btn { font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; letter-spacing: 4px; z-index: 20; }
-
         .vol-wrap { width: 100%; padding: 5px 0; cursor: pointer; z-index: 40; margin-bottom: 25px; }
         .vol-track { height: 32px; background: rgba(255,255,255,0.05); border-radius: 16px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         .vol-fill { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(to right, transparent, rgba(148, 0, 211, 0.3)); border-right: 2px solid #fff; width: 70%; pointer-events: none; }
-        
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 10px; z-index: 30; }
-        .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
         .play-btn { width: 60px; height: 60px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
 
-        #playlist-panel { 
-            position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(15, 8, 25, 0.95); backdrop-filter: blur(80px); -webkit-backdrop-filter: blur(80px);
-            border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 40px 40px 0 0; z-index: 1000; 
-            transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
-        }
+        #playlist-panel { position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; background: rgba(15, 8, 25, 0.95); backdrop-filter: blur(80px); -webkit-backdrop-filter: blur(80px); border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 40px 40px 0 0; z-index: 1000; transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; }
         #playlist-panel.open { bottom: 0; }
         .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.4); font-size: 0.8rem; background: rgba(255,255,255,0.03); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
     </style>
@@ -118,7 +100,6 @@
 <body>
 
 <video id="bgVideo" class="video-bg" loop muted playsinline></video>
-<div class="backlit-glow" id="glowPulse"></div>
 <button id="exitFS">EXIT</button>
 
 <div class="card" id="playerCard">
@@ -135,6 +116,8 @@
     </div>
     
     <div class="disk-wrapper stagger" id="diskArea">
+        <div class="disk-backglow" id="glowPulse"></div>
+        
         <div id="cdAssembly"></div>
         <svg id="curved-text-svg" viewBox="0 0 200 200">
             <defs><path id="diskPath" d="M 100, 100 m -85, 0 a 85,85 0 1,1 170,0 a 85,85 0 1,1 -170,0"></path></defs>
@@ -194,13 +177,13 @@
         if (analyser) {
             analyser.getByteFrequencyData(dataArray);
             
-            // Bass Pulse Logic
+            // Faint Backglow Bass Pulse
             let bassSum = 0; for(let i=0; i<4; i++) bassSum += dataArray[i];
             const bassIntense = (bassSum / 4) / 255;
-            glowPulse.style.transform = `scale(${1 + (bassIntense * 0.15)})`;
-            glowPulse.style.opacity = 0.15 + (bassIntense * 0.25);
+            // Subtle values: Scale only slightly (1.0 to 1.1) and Opacity stays low (0.05 to 0.2)
+            glowPulse.style.transform = `scale(${1 + (bassIntense * 0.12)})`;
+            glowPulse.style.opacity = 0.05 + (bassIntense * 0.15);
 
-            // Existing Bar Logic
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const numBars = 10, gap = 8;
             const barW = (canvas.width / 2 - (numBars * gap)) / numBars;
@@ -223,7 +206,6 @@
         audio.pause(); mainVideo.pause(); bgVideo.pause();
         audio.src = ""; mainVideo.src = "";
         songLabel.textContent = track.name.toUpperCase();
-
         if(track.type === 'video') {
             mainVideo.src = track.url; bgVideo.src = track.url;
             videoCont.style.display = 'block'; bgVideo.style.display = 'block';
@@ -233,14 +215,12 @@
             stealthToggle.style.display = 'none'; playerCard.classList.remove('is-stealth');
             document.body.classList.remove('is-fullscreen');
         }
-
         const active = getActive();
         active.play().catch(()=>{});
         if(track.type === 'video') bgVideo.play().catch(()=>{});
         playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
     }
 
-    // DISK INTERACTION + LONG PRESS
     function getAngle(e) {
         const r = cdAssembly.getBoundingClientRect();
         const p = e.touches ? e.touches[0] : e;
@@ -254,19 +234,24 @@
         active.pause(); if(bgVideo.src) bgVideo.pause();
         timeDisplay.style.opacity = '1';
 
+        // Long press trigger
         clearTimeout(pressTimer);
         pressTimer = setTimeout(() => {
             if (isDragging && playlist[currentIndex]?.type === 'video') {
                 document.body.classList.add('is-fullscreen');
+                isDragging = false; // Stop dragging once fullscreen triggers
             }
         }, 800);
     };
 
     const moveS = (e) => {
         if(!isDragging) return;
+        // If they move too much, cancel the long-press to avoid accidental trigger
         const active = getActive();
         const angle = getAngle(e);
         let delta = angle - lastAngle;
+        if(Math.abs(delta) > 1) clearTimeout(pressTimer); 
+
         if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
         rotation += delta;
         document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
@@ -277,20 +262,21 @@
     };
 
     const endS = () => {
+        clearTimeout(pressTimer);
         if(!isDragging) return;
         isDragging = false;
         timeDisplay.style.opacity = '0';
-        clearTimeout(pressTimer);
         if(wasPlaying) { getActive().play(); if(bgVideo.src) bgVideo.play(); }
     };
 
     exitFS.onclick = () => document.body.classList.remove('is-fullscreen');
     playerCard.addEventListener('click', () => playerCard.classList.remove('is-stealth'));
+    
     cdAssembly.addEventListener('mousedown', startS);
     window.addEventListener('mousemove', moveS);
     window.addEventListener('mouseup', endS);
-    cdAssembly.addEventListener('touchstart', startS, {passive: false});
-    window.addEventListener('touchmove', moveS, {passive: false});
+    cdAssembly.addEventListener('touchstart', (e) => { startS(e); }, {passive: false});
+    window.addEventListener('touchmove', (e) => { moveS(e); }, {passive: false});
     window.addEventListener('touchend', endS);
 
     stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
