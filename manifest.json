@@ -3,9 +3,12 @@
   "short_name": "Musicsphere",
   "description": "High-fidelity immersive music and video player.",
   "start_url": "./index.html",
-  "display": "standalone",
+{
+  "theme_color": "#05010a",
   "background_color": "#05010a",
-  "theme_color": "#b19cd9",
+  "display": "standalone"
+}
+
   "orientation": "portrait",
   "icons": [
     {
