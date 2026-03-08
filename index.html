@@ -4,15 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Musicsphere Pro | Cinematic Expansion</title>
-    <link rel="manifest" href="manifest.json">
     <style>
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        
         :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; --milky-purple: rgba(230, 224, 255, 0.4); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-family: sans-serif; overflow: hidden; touch-action: none; }
         
-        /* THE BACKGROUND PLAYER: Darker blurred playback */
+        /* THE BACKGROUND PLAYER: Tint reduced by increasing brightness and opacity */
         .video-bg { 
             position: absolute; 
             inset: -5%; 
@@ -20,14 +17,14 @@
             height: 110%; 
             object-fit: cover; 
             display: none; 
-            filter: blur(50px) brightness(0.25); /* Darker and blurred background */
+            filter: blur(50px) brightness(0.45); /* Increased from 0.25 for more noticeability */
             z-index: 0; 
-            opacity: 0.7; 
+            opacity: 0.85; /* Increased from 0.7 */
             pointer-events: none; 
             transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
-        /* Video Card Layer - Blurred/dimmed inside UI, Sharp in expansion */
+        /* Video Card Layer */
         .video-card-inner { 
             position: absolute; 
             inset: 0; 
@@ -64,7 +61,7 @@
         /* THE HORIZONTAL EXPANSION: 16:9 Landscape Format */
         .card.is-expanded { 
             width: 90vw; 
-            height: calc(90vw * 9 / 16); /* Forces 16:9 Aspect Ratio */
+            height: calc(90vw * 9 / 16); 
             max-width: 1000px; 
             max-height: 562px;
             border-radius: 30px; 
@@ -78,7 +75,6 @@
             opacity: 1; 
         }
 
-        /* Hide UI Card entirely during expansion */
         .card.is-expanded :not(.video-card-inner) { 
             opacity: 0 !important; 
             pointer-events: none !important; 
@@ -101,7 +97,25 @@
         .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; transition: opacity 0.3s; }
         canvas { width: 100%; height: 70px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
-        .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 30px; letter-spacing: 4px; background: rgba(0,0,0,0.2); transition: 0.4s; }
+        
+        /* Media Button: Muted Blurred Capsule */
+        .load-btn { 
+            z-index: 20; 
+            font-size: 0.6rem; 
+            font-weight: 900; 
+            color: #fff; 
+            border: 1px solid rgba(255,255,255,0.15); 
+            padding: 12px 35px; 
+            border-radius: 100px; 
+            cursor: pointer; 
+            margin-bottom: 30px; 
+            letter-spacing: 4px; 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            transition: 0.4s; 
+        }
+        
         .vol-container { width: 200px; height: 10px; z-index: 40; transition: 0.4s; margin-bottom: 35px; cursor: pointer;}
         .vol-track { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; }
@@ -194,14 +208,14 @@
     }
     draw();
 
-    // Long Press Expansion logic
+    // Long Press Expansion logic - Blocked if dragging
     let pressTimer;
     playerCard.addEventListener('mousedown', (e) => { 
-        if(e.target.closest('button') || e.target.closest('#playlist-panel')) return;
+        if(isDragging || e.target.closest('button') || e.target.closest('#playlist-panel')) return;
         if (playlist[currentIndex]?.type === 'video') pressTimer = setTimeout(() => playerCard.classList.add('is-expanded'), 800); 
     });
     playerCard.addEventListener('touchstart', (e) => { 
-        if(e.target.closest('button') || e.target.closest('#playlist-panel')) return;
+        if(isDragging || e.target.closest('button') || e.target.closest('#playlist-panel')) return;
         if (playlist[currentIndex]?.type === 'video') pressTimer = setTimeout(() => playerCard.classList.add('is-expanded'), 800); 
     });
     window.addEventListener('mouseup', () => clearTimeout(pressTimer));
@@ -258,7 +272,14 @@
         const r = cdAssembly.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e;
         return Math.atan2(p.clientY-(r.top+r.height/2), p.clientX-(r.left+r.width/2)) * 180 / Math.PI;
     }
-    const startS = (e) => { const active = getActive(); if(!active || !active.src) return; isDragging = true; lastAngle = getAngle(e); active.pause(); bgVideo.pause(); timeDisplay.style.opacity = '1'; };
+    const startS = (e) => { 
+        const active = getActive(); if(!active || !active.src) return; 
+        isDragging = true; 
+        clearTimeout(pressTimer); // Crucial fix: cancel expansion if scrubbing starts
+        lastAngle = getAngle(e); 
+        active.pause(); bgVideo.pause(); 
+        timeDisplay.style.opacity = '1'; 
+    };
     const moveS = (e) => {
         if(!isDragging) return;
         const active = getActive(); const angle = getAngle(e);
