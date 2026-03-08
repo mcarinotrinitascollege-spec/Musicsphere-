@@ -1,25 +1,23 @@
 {
+  "name": "Musicsphere Pro",
   "short_name": "Musicsphere",
-  "name": "Musicsphere Pro Audio",
-  "description": "A high-fidelity immersive music and video player.",
-  "id": "/index.html",
+  "description": "High-fidelity immersive music and video player.",
   "start_url": "./index.html",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#05010a",
   "theme_color": "#b19cd9",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon.png",
-      "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon.png",
-      "type": "image/png",
       "sizes": "512x512",
-      "purpose": "maskable"
+      "type": "image/png"
     }
   ]
 }
