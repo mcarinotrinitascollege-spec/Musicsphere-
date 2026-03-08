@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Musicsphere Pro Stealth</title>
+    <title>Musicsphere Pro Sync</title>
     <style>
         :root { --accent: #9400D3; --powder-purple: #DCD0FF; --bg: #05010a; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
@@ -14,7 +14,8 @@
             font-family: sans-serif; overflow: hidden; touch-action: none; 
         }
 
-        .video-bg { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; display: none; filter: blur(40px) brightness(1.3); z-index: 0; opacity: 0.65; pointer-events: none; }
+        /* Ambient Video Background */
+        .video-bg { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; display: none; filter: blur(40px) brightness(0.8); z-index: 0; opacity: 0.5; pointer-events: none; }
         .video-fs { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; z-index: 5; opacity: 0; transition: opacity 0.8s ease; background: #000; }
         
         .backlit-glow { position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); opacity: 0.15; border-radius: 50%; z-index: 1; pointer-events: none; }
@@ -27,7 +28,18 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden;
             backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            cursor: pointer;
+        }
+
+        /* Internal Video Tint */
+        .card::before {
+            content: ''; position: absolute; inset: 0; 
+            background: rgba(0,0,0,0.65); z-index: 2; pointer-events: none;
+        }
+
+        /* Video element inside the card */
+        #internalVideo {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 1; display: none;
         }
 
         .headtitle {
@@ -37,42 +49,42 @@
             animation: breathe 4s ease-in-out infinite;
         }
         @keyframes breathe {
-            0%, 100% { opacity: 0.2; transform: scale(1); filter: blur(1px); }
-            50% { opacity: 0.8; transform: scale(1.02); filter: blur(0px); text-shadow: 0 0 15px var(--accent); }
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.8; text-shadow: 0 0 15px var(--accent); }
         }
 
         body.is-zoomed .card { width: 100vw; height: 100vh; max-width: none; border-radius: 0; background: #000; border: none; padding: 0; }
         body.is-zoomed .video-fs { display: block; opacity: 1; }
         body.is-zoomed .hide-on-zoom { opacity: 0 !important; pointer-events: none; visibility: hidden; }
         
-        /* Stealth Animation */
-        .stagger { transition: opacity 0.4s ease, transform 0.4s ease; pointer-events: auto; }
+        .stagger { transition: opacity 0.4s ease, transform 0.4s ease; pointer-events: auto; z-index: 30; }
         .is-stealth .stagger { opacity: 0 !important; pointer-events: none; transform: translateY(15px); }
 
         .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 45px; z-index: 150; padding-top: 10px; gap: 10px; position: relative; }
         .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: opacity 0.2s; color: white; }
-        #stealthToggle.active { opacity: 1; color: var(--accent); filter: drop-shadow(0 0 8px var(--accent)); }
 
         .disk-wrapper { 
             position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 20px;
-            display: flex; align-items: center; justify-content: center; z-index: 20;
+            display: flex; align-items: center; justify-content: center; z-index: 40;
         }
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            background: radial-gradient(circle, rgba(148, 0, 211, 0.1) 0%, transparent 75%);
-            border: 2px solid rgba(255, 255, 255, 0.1); cursor: grab; z-index: 21;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 75%);
+            border: 2.5px solid rgba(255, 255, 255, 0.1); cursor: grab; z-index: 41;
             transform: rotate(var(--disk-rot));
+            /* The Halo effect base */
+            box-shadow: 0 0 0px var(--powder-purple); 
+            transition: box-shadow 0.1s ease;
         }
 
-        #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 22; transform: rotate(calc(var(--disk-rot) - 90deg)); }
+        #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 42; transform: rotate(calc(var(--disk-rot) - 90deg)); }
         .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
 
-        .hud-center { position: absolute; z-index: 23; pointer-events: none; text-align: center; }
+        .hud-center { position: absolute; z-index: 43; pointer-events: none; text-align: center; }
         #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; text-shadow: 0 0 20px var(--accent); transition: opacity 0.3s; }
 
-        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.9; z-index: 5; pointer-events: none; } 
+        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.9; z-index: 30; pointer-events: none; } 
 
-        /* Powder Purple Pill Outline */
         .load-btn { 
             font-size: 0.6rem; font-weight: 900; color: var(--powder-purple); 
             border: 1.5px solid var(--powder-purple); padding: 10px 30px; 
@@ -87,18 +99,7 @@
         
         .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 10px; z-index: 150; position: relative; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
-        
-        /* Updated Play Button to remove background circle */
         .play-btn { background: none; border: none; width: 60px; height: 60px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        #playlist-panel { 
-            position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(10, 5, 20, 0.98); backdrop-filter: blur(80px);
-            border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 40px 40px 0 0; z-index: 1000; 
-            transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
-        }
-        #playlist-panel.open { bottom: 0; }
-        .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.4); font-size: 0.8rem; background: rgba(255,255,255,0.03); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
 
         #exitBtn { 
             position: fixed; top: 40px; left: 30px; z-index: 3000; 
@@ -116,6 +117,7 @@
 <button id="exitBtn">RETURN</button>
 
 <div class="card" id="playerCard">
+    <video id="internalVideo" loop muted playsinline></video>
     <div class="headtitle stagger hide-on-zoom">MUSICSPHERE</div>
     
     <div class="header stagger hide-on-zoom">
@@ -147,20 +149,16 @@
         <div class="play-btn" id="playBtn"><svg viewBox="0 0 24 24" id="playIcon" width="28" height="28" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
         <button class="icon-btn" id="nextBtn"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
     </div>
-
-    <div id="playlist-panel">
-        <div id="track-list" style="overflow-y: auto; height: 100%;"></div>
-    </div>
 </div>
 
 <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
     const audio = document.getElementById('player'), fsVideo = document.getElementById('fsVideo'), bgVideo = document.getElementById('bgVideo');
-    const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
+    const internalVideo = document.getElementById('internalVideo'), canvas = document.getElementById('viz');
+    const ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
     const songLabel = document.getElementById('songLabel'), timeDisplay = document.getElementById('time-display');
     const playIcon = document.getElementById('playIcon'), vFil = document.getElementById('vFil'), volHitbox = document.getElementById('volHitbox');
-    const playlistPanel = document.getElementById('playlist-panel'), trackListUI = document.getElementById('track-list');
     const playerCard = document.getElementById('playerCard'), exitBtn = document.getElementById('exitBtn'), stealthToggle = document.getElementById('stealthToggle');
 
     let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0, wasPlaying = false, pressTimer;
@@ -186,15 +184,21 @@
         }
         if (analyser && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
+            
+            // Halo Logic: Frequency 0-4 are Bass
+            let bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
+            let haloIntensity = (bass / 255) * 15; // Subtle powder purple glow
+            cdAssembly.style.boxShadow = `0 0 ${haloIntensity}px var(--powder-purple)`;
+            cdAssembly.style.borderColor = `rgba(220, 208, 255, ${0.1 + (bass/255) * 0.4})`;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const numBars = 10, gap = 8, barW = (canvas.width / 2 - (numBars * gap)) / numBars;
             for (let i = 0; i < numBars; i++) {
-                let sensitivity = 1 - (i / numBars) * 0.7;
-                let val = (dataArray[i] / 255) * canvas.height * sensitivity;
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (val/canvas.height)})`;
+                let v = (dataArray[i] / 255) * canvas.height * (1 - (i/numBars)*0.7);
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (v/canvas.height)})`;
                 ctx.beginPath();
-                ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 10);
-                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - val, barW, val, 10);
+                ctx.roundRect(i * (barW + gap), canvas.height - v, barW, v, 10);
+                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - v, barW, v, 10);
                 ctx.fill();
             }
         }
@@ -204,45 +208,44 @@
         if (!playlist.length) return;
         currentIndex = (index + playlist.length) % playlist.length;
         const track = playlist[currentIndex];
-        audio.pause(); fsVideo.pause();
+        audio.pause(); fsVideo.pause(); internalVideo.pause(); bgVideo.pause();
+        
         const active = getActive();
         songLabel.textContent = track.name.toUpperCase();
         active.src = track.url;
-        if(track.type === 'video') { bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play(); } else { bgVideo.style.display = 'none'; }
+
+        if(track.type === 'video') { 
+            bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play();
+            internalVideo.src = track.url; internalVideo.style.display = 'block'; internalVideo.play();
+        } else { 
+            bgVideo.style.display = 'none'; internalVideo.style.display = 'none'; 
+        }
         active.play().catch(()=>{});
         playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
     }
 
-    // STEALTH LOGIC: Tap card to bring back UI
     playerCard.addEventListener('click', () => {
         if (playerCard.classList.contains('is-stealth')) {
             playerCard.classList.remove('is-stealth');
-            stealthToggle.classList.remove('active');
         }
     });
 
-    stealthToggle.onclick = (e) => { 
-        e.stopPropagation(); 
-        playerCard.classList.toggle('is-stealth');
-        stealthToggle.classList.toggle('active');
-    };
-
-    // DISK INTERACTION
+    // DISK INTERACTION (LONG PRESS VS DRAG)
     function getAngle(e) {
-        const r = cdAssembly.getBoundingClientRect();
-        const p = e.touches ? e.touches[0] : e;
+        const r = cdAssembly.getBoundingClientRect(), p = e.touches ? e.touches[0] : e;
         return Math.atan2(p.clientY-(r.top+r.height/2), p.clientX-(r.left+r.width/2)) * 180 / Math.PI;
     }
 
     const startS = (e) => {
-        const active = getActive(); if(!active.src) return;
-        if(playerCard.classList.contains('is-stealth')) return; // Let the card click handle it
-        isDragging = true; lastAngle = getAngle(e);
-        wasPlaying = !active.paused; active.pause();
-        timeDisplay.style.opacity = '1';
+        const active = getActive(); if(!active.src || playerCard.classList.contains('is-stealth')) return;
+        isDragging = false; 
+        const initialAngle = getAngle(e);
+        lastAngle = initialAngle;
+        wasPlaying = !active.paused;
+        
         clearTimeout(pressTimer);
         pressTimer = setTimeout(() => {
-            if(isDragging && playlist[currentIndex]?.type === 'video') {
+            if(!isDragging && playlist[currentIndex]?.type === 'video') {
                 document.body.classList.add('is-zoomed');
                 exitBtn.style.display = 'block';
             }
@@ -250,19 +253,36 @@
     };
 
     const moveS = (e) => {
-        if(!isDragging) return;
         const active = getActive();
+        if(!active.src || playerCard.classList.contains('is-stealth')) return;
+        
         const angle = getAngle(e);
         let delta = angle - lastAngle;
-        if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
-        rotation += delta;
-        document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
-        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.15)));
-        timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
-        lastAngle = angle;
+        if(Math.abs(delta) > 1) { // Threshold to define dragging vs long-press hold
+            isDragging = true;
+            clearTimeout(pressTimer); 
+            active.pause();
+            timeDisplay.style.opacity = '1';
+        }
+
+        if(isDragging) {
+            if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
+            rotation += delta;
+            document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
+            active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.15)));
+            // Sync internal video to scrubbing
+            if(playlist[currentIndex]?.type === 'video') internalVideo.currentTime = active.currentTime;
+            timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
+            lastAngle = angle;
+        }
     };
 
-    const endS = () => { if(!isDragging) return; isDragging = false; clearTimeout(pressTimer); timeDisplay.style.opacity = '0'; if(wasPlaying) getActive().play(); };
+    const endS = () => { 
+        clearTimeout(pressTimer); 
+        timeDisplay.style.opacity = '0'; 
+        if(isDragging && wasPlaying) getActive().play();
+        isDragging = false;
+    };
 
     cdAssembly.addEventListener('mousedown', startS);
     window.addEventListener('mousemove', moveS);
@@ -273,11 +293,16 @@
 
     document.getElementById('playBtn').onclick = (e) => {
         e.stopPropagation(); initAudio(); const a = getActive();
-        if(a.paused) { a.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
-        else { a.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
+        if(a.paused) { 
+            a.play(); if(playlist[currentIndex]?.type === 'video') internalVideo.play();
+            playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; 
+        } else { 
+            a.pause(); internalVideo.pause();
+            playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; 
+        }
     };
 
-    document.getElementById('listToggle').onclick = (e) => { e.stopPropagation(); playlistPanel.classList.toggle('open'); };
+    stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
     exitBtn.onclick = (e) => { e.stopPropagation(); document.body.classList.remove('is-zoomed'); exitBtn.style.display = 'none'; };
 
     document.getElementById('audIn').onchange = (e) => {
@@ -285,26 +310,10 @@
             playlist.push({ name: f.name.split('.')[0], url: URL.createObjectURL(f), type: f.type.startsWith('video') ? 'video' : 'audio' });
         });
         if(playlist.length > 0) loadTrack(playlist.length - e.target.files.length);
-        trackListUI.innerHTML = "";
-        playlist.forEach((t, i) => {
-            const div = document.createElement('div'); div.className = 'track-item'; div.textContent = t.name;
-            div.onclick = (ev) => { ev.stopPropagation(); loadTrack(i); playlistPanel.classList.remove('open'); };
-            trackListUI.appendChild(div);
-        });
     };
-
-    function setV(e) {
-        const r = volHitbox.getBoundingClientRect(), p = e.touches ? e.touches[0] : e;
-        let pr = Math.max(0, Math.min(1, (p.clientX - r.left) / r.width));
-        vFil.style.width = (pr * 100) + '%'; audio.volume = pr; fsVideo.volume = pr;
-    }
-    volHitbox.addEventListener('mousedown', (e) => { e.stopPropagation(); setV(e); window.onmousemove = setV; window.onmouseup = () => window.onmousemove = null; });
-    volHitbox.addEventListener('touchstart', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
-    volHitbox.addEventListener('touchmove', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
 
     window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
     window.onresize();
 </script>
 </body>
 </html>
-
