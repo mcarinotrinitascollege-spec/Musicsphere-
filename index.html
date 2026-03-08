@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Musicsphere Pro</title>
     <style>
-        :root { --accent: #9400D3; --bg: #05010a; --disk-rot: 0deg; }
+        :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body, html { 
@@ -16,80 +16,106 @@
 
         .video-bg { position: absolute; inset: -5%; width: 110%; height: 110%; object-fit: cover; display: none; filter: blur(40px) brightness(1.3); z-index: 0; opacity: 0.65; pointer-events: none; }
         
-        /* NEW: In-card video styling with dark tint */
         .video-card-inner { 
             position: absolute; inset: 0; width: 100%; height: 100%; 
             object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.8s ease; 
-            filter: brightness(0.2) contrast(1.2); pointer-events: none;
+            filter: brightness(0.5) contrast(1.1); pointer-events: none;
         }
         
-        .backlit-glow { position: absolute; width: 400px; height: 550px; background: var(--accent); filter: blur(100px); opacity: 0.15; border-radius: 50%; z-index: 1; }
-
         .card { 
             position: relative; z-index: 10; width: 92vw; max-width: 380px; height: 680px;
-            background: rgba(15, 8, 25, 0.85); border-radius: 50px; padding: 25px; 
+            background: rgba(15, 8, 25, 0.9); border-radius: 50px; padding: 25px; 
             display: flex; flex-direction: column; align-items: center; 
             border: 1.5px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden;
             backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.5s ease;
+        }
+
+        .card.is-stealth .headtitle, 
+        .card.is-stealth canvas, 
+        .card.is-stealth .load-btn, 
+        .card.is-stealth .vol-container,
+        .card.is-stealth #listToggle { 
+            opacity: 0; pointer-events: none; transform: translateY(10px); 
+        }
+
+        @keyframes titleBreath {
+            0%, 100% { opacity: 0.3; transform: scale(1); filter: blur(0px); }
+            50% { opacity: 0.8; transform: scale(1.02); filter: blur(1px); color: var(--accent); }
         }
 
         .headtitle {
             position: absolute; top: 45px; left: 30px;
             font-size: 0.75rem; font-weight: 900; letter-spacing: 6px; color: #fff;
-            text-transform: uppercase; z-index: 25;
-            animation: breathe 4s ease-in-out infinite;
+            text-transform: uppercase; z-index: 25; 
+            animation: titleBreath 4s ease-in-out infinite;
+            transition: 0.4s;
         }
 
-        .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 45px; z-index: 20; padding-top: 10px; gap: 10px; }
-        .icon-nav { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: opacity 0.2s; }
+        .header { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 35px; z-index: 20; padding-top: 10px; gap: 10px; }
+        #stealthToggle { display: none; background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; z-index: 30; }
+        #listToggle { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 8px; transition: 0.4s; }
 
         .disk-wrapper { 
-            position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 20px;
+            position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 10px;
             display: flex; align-items: center; justify-content: center; z-index: 20;
         }
 
-        /* UPGRADED: Added White Halo Glow */
         #cdAssembly { 
             position: absolute; width: 100%; height: 100%; border-radius: 50%; 
-            background: radial-gradient(circle, rgba(148, 0, 211, 0.1) 0%, transparent 75%);
-            border: 1.5px solid rgba(255, 255, 255, 0.3); cursor: grab; z-index: 5;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 75%);
+            border: 1.5px solid rgba(255, 255, 255, 0.4); cursor: grab; z-index: 5;
             transform: rotate(var(--disk-rot));
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 10px rgba(255,255,255,0.1);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
         }
 
         #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
-        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; }
+        .curved-title { font-size: 7px; font-weight: 900; fill: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 3px; }
 
         .hud-center { position: absolute; z-index: 12; pointer-events: none; text-align: center; }
-        #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; text-shadow: 0 0 20px var(--accent); transition: opacity 0.3s; }
+        #time-display { color: #fff; font-size: 1.6rem; opacity: 0; font-family: monospace; transition: opacity 0.3s; }
 
-        canvas { width: 100%; height: 60px; margin-bottom: 20px; opacity: 0.9; z-index: 20; } 
+        canvas { width: 100%; height: 60px; margin-bottom: 15px; opacity: 0.9; z-index: 20; transition: 0.4s; } 
 
-        .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; letter-spacing: 4px; }
+        .load-btn { z-index: 20; font-size: 0.6rem; font-weight: 900; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 10px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 30px; letter-spacing: 4px; background: rgba(0,0,0,0.2); transition: 0.4s; }
 
-        .vol-wrap { width: 100%; padding: 5px 0; cursor: pointer; z-index: 40; margin-bottom: 25px; }
-        .vol-track { height: 32px; background: rgba(255,255,255,0.05); border-radius: 16px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .vol-fill { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(to right, transparent, rgba(148, 0, 211, 0.3)); border-right: 2px solid #fff; width: 70%; pointer-events: none; }
+        /* REPOSITIONED: Horizontal Volume Bar above controls */
+        .vol-container {
+            width: 200px; height: 10px; z-index: 40; transition: 0.4s;
+            margin-bottom: 35px; /* Space between volume and controls */
+        }
+        .vol-track {
+            width: 100%; height: 100%; background: rgba(255,255,255,0.05);
+            border-radius: 20px; position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .vol-fill {
+            position: absolute; left: 0; top: 0; height: 100%; width: 70%;
+            background: linear-gradient(to right, #b19cd9, #ffffff);
+            border-radius: 20px; transition: width 0.1s ease;
+        }
         
-        .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 10px; z-index: 30; }
+        /* SHIFTED DOWNWARD: Controls with extra space */
+        .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
-        .play-btn { width: 60px; height: 60px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+        
+        .play-btn { 
+            width: 65px; height: 65px; background: rgba(255, 255, 255, 0.1); 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: 0.3s;
+        }
+        .play-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.2); }
 
-        /* UPGRADED: Frosted Clear Playlist */
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(255, 255, 255, 0.03); 
-            backdrop-filter: blur(40px) brightness(1.2); 
-            -webkit-backdrop-filter: blur(40px) brightness(1.2);
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(40px) brightness(1.2); -webkit-backdrop-filter: blur(40px) brightness(1.2);
             border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 1000; 
             transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
         }
         #playlist-panel.open { bottom: 0; }
-        .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.6); font-size: 0.8rem; background: rgba(255,255,255,0.05); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
-
-        @keyframes breathe { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.8; } }
+        .track-item { padding: 18px; margin-bottom: 8px; border-radius: 15px; color: rgba(255,255,255,0.7); font-size: 0.8rem; background: rgba(255,255,255,0.05); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -97,43 +123,37 @@
 <video id="bgVideo" class="video-bg" loop muted playsinline></video>
 
 <div class="card" id="playerCard">
-    <video id="cardVideo" class="video-card-inner" loop muted playsinline></video>
+    <video id="cardVideo" class="video-card-inner" loop playsinline></video>
+    <div class="headtitle">MUSICSPHERE</div>
     
-    <div class="headtitle stagger">MUSICSPHERE</div>
-    
-    <div class="header stagger">
+    <div class="header">
         <button class="icon-nav" id="stealthToggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="icon-nav" id="listToggle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg></button>
     </div>
     
-    <div class="disk-wrapper stagger" id="diskArea">
+    <div class="disk-wrapper" id="diskArea">
         <div id="cdAssembly"></div>
         <svg id="curved-text-svg" viewBox="0 0 200 200">
             <defs><path id="diskPath" d="M 100, 100 m -85, 0 a 85,85 0 1,1 170,0 a 85,85 0 1,1 -170,0"></path></defs>
             <text class="curved-title"><textPath id="songLabel" xlink:href="#diskPath" startOffset="50%" text-anchor="middle">AWAITING INPUT</textPath></text>
         </svg>
-        <div class="hud-center">
-            <div id="time-display">0:00</div>
-        </div>
+        <div class="hud-center"><div id="time-display">0:00</div></div>
     </div>
 
-    <canvas id="viz" class="stagger"></canvas>
+    <canvas id="viz"></canvas>
+    <label class="load-btn">INSERT MEDIA<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
 
-    <label class="load-btn stagger">INSERT<input type="file" id="audIn" accept="audio/*,video/mp4" multiple style="display:none"></label>
-
-    <div class="vol-wrap stagger" id="volHitbox">
+    <div class="vol-container" id="volHitbox">
         <div class="vol-track"><div class="vol-fill" id="vFil"></div></div>
     </div>
 
-    <div class="controls stagger">
+    <div class="controls">
         <button class="icon-btn" id="prevBtn"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-        <div class="play-btn" id="playBtn"><svg viewBox="0 0 24 24" id="playIcon" width="28" height="28" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="play-btn" id="playBtn"><svg viewBox="0 0 24 24" id="playIcon" width="30" height="30" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
         <button class="icon-btn" id="nextBtn"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
     </div>
 
-    <div id="playlist-panel">
-        <div id="track-list" style="overflow-y: auto; height: 100%;"></div>
-    </div>
+    <div id="playlist-panel"><div id="track-list" style="overflow-y: auto; height: 100%;"></div></div>
 </div>
 
 <audio id="player" crossorigin="anonymous"></audio>
@@ -143,79 +163,65 @@
     const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
     const songLabel = document.getElementById('songLabel'), timeDisplay = document.getElementById('time-display');
     const playIcon = document.getElementById('playIcon'), vFil = document.getElementById('vFil'), volHitbox = document.getElementById('volHitbox');
-    const playlistPanel = document.getElementById('playlist-panel'), trackListUI = document.getElementById('track-list');
+    const playlistPanel = document.getElementById('playlist-panel'), trackListUI = document.getElementById('track-list'), stealthToggle = document.getElementById('stealthToggle');
     const playerCard = document.getElementById('playerCard');
 
-    let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0, wasPlaying = false;
+    let playlist = [], currentIndex = 0, audioCtx, analyser, dataArray, rotation = 0, isDragging = false, lastAngle = 0;
 
-    // ACTIVE SOURCE: Now uses cardVideo for MP4s
     const getActive = () => playlist[currentIndex]?.type === 'video' ? cardVideo : audio;
 
     async function initAudio() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 64; 
-            
+            analyser.fftSize = 128; 
             const audioSrc = audioCtx.createMediaElementSource(audio);
             const videoSrc = audioCtx.createMediaElementSource(cardVideo);
-            
-            audioSrc.connect(analyser);
-            videoSrc.connect(analyser);
+            audioSrc.connect(analyser); videoSrc.connect(analyser);
             analyser.connect(audioCtx.destination);
-            
             dataArray = new Uint8Array(analyser.frequencyBinCount);
-            draw();
         }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function draw() {
         requestAnimationFrame(draw);
         const active = getActive();
-        
         if (active.src && !active.paused && !isDragging) { 
-            rotation += 0.25; 
+            rotation += 0.3; 
             document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`); 
         }
-
         if (analyser && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const numBars = 10, gap = 8;
+            const numBars = 12, gap = 6;
             const barW = (canvas.width / 2 - (numBars * gap)) / numBars;
             for (let i = 0; i < numBars; i++) {
                 let val = (dataArray[i] / 255) * canvas.height;
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (val/canvas.height)})`;
-                ctx.beginPath();
-                ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 10);
-                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - val, barW, val, 10);
-                ctx.fill();
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + (val/canvas.height)})`;
+                ctx.beginPath(); ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 10);
+                ctx.roundRect(canvas.width - (i * (barW + gap)) - barW, canvas.height - val, barW, val, 10); ctx.fill();
             }
         }
     }
+    draw();
 
     function loadTrack(index) {
         if (!playlist.length) return;
         currentIndex = (index + playlist.length) % playlist.length;
         const track = playlist[currentIndex];
-        
         audio.pause(); cardVideo.pause();
         const active = getActive();
         songLabel.textContent = track.name.toUpperCase();
-        
         active.src = track.url;
         if(track.type === 'video') {
-            cardVideo.style.opacity = '1';
-            bgVideo.src = track.url;
-            bgVideo.style.display = 'block';
-            bgVideo.play();
+            cardVideo.style.opacity = '1'; bgVideo.src = track.url; bgVideo.style.display = 'block'; bgVideo.play().catch(()=>{});
+            stealthToggle.style.display = 'block';
         } else {
-            cardVideo.style.opacity = '0';
-            bgVideo.style.display = 'none';
+            cardVideo.style.opacity = '0'; bgVideo.style.display = 'none'; stealthToggle.style.display = 'none';
+            playerCard.classList.remove('is-stealth');
         }
-        
-        active.play().catch(()=>{});
-        playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        active.play().then(() => playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>').catch(()=>{});
     }
 
     function getAngle(e) {
@@ -227,44 +233,33 @@
     const startS = (e) => {
         const active = getActive(); if(!active.src) return;
         isDragging = true; lastAngle = getAngle(e);
-        wasPlaying = !active.paused; active.pause();
-        timeDisplay.style.opacity = '1';
+        active.pause(); timeDisplay.style.opacity = '1';
     };
 
     const moveS = (e) => {
         if(!isDragging) return;
-        const active = getActive();
-        const angle = getAngle(e);
+        const active = getActive(); const angle = getAngle(e);
         let delta = angle - lastAngle;
         if(delta > 180) delta -= 360; if(delta < -180) delta += 360;
         rotation += delta;
         document.documentElement.style.setProperty('--disk-rot', `${rotation}deg`);
-        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.15)));
+        active.currentTime = Math.max(0, Math.min(active.duration - 0.1, active.currentTime + (delta * 0.1)));
         timeDisplay.textContent = Math.floor(active.currentTime/60) + ":" + String(Math.floor(active.currentTime%60)).padStart(2,'0');
         lastAngle = angle;
     };
 
-    const endS = () => {
-        if(!isDragging) return;
-        isDragging = false;
-        timeDisplay.style.opacity = '0';
-        if(wasPlaying) getActive().play();
-    };
+    const endS = () => { if(!isDragging) return; isDragging = false; timeDisplay.style.opacity = '0'; getActive().play(); };
 
-    cdAssembly.addEventListener('mousedown', startS);
-    window.addEventListener('mousemove', moveS);
-    window.addEventListener('mouseup', endS);
-    cdAssembly.addEventListener('touchstart', startS, {passive: false});
-    window.addEventListener('touchmove', moveS, {passive: false});
-    window.addEventListener('touchend', endS);
+    cdAssembly.addEventListener('mousedown', startS); window.addEventListener('mousemove', moveS); window.addEventListener('mouseup', endS);
+    cdAssembly.addEventListener('touchstart', startS, {passive: false}); window.addEventListener('touchmove', moveS, {passive: false}); window.addEventListener('touchend', endS);
 
-    document.getElementById('stealthToggle').onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
-    document.getElementById('listToggle').onclick = (e) => { e.stopPropagation(); playlistPanel.classList.toggle('open'); };
+    document.getElementById('prevBtn').onclick = () => loadTrack(currentIndex - 1);
+    document.getElementById('nextBtn').onclick = () => loadTrack(currentIndex + 1);
+    document.getElementById('listToggle').onclick = () => playlistPanel.classList.toggle('open');
+    stealthToggle.onclick = (e) => { e.stopPropagation(); playerCard.classList.toggle('is-stealth'); };
 
-    document.getElementById('playBtn').onclick = (e) => {
-        e.stopPropagation();
-        initAudio();
-        const a = getActive();
+    document.getElementById('playBtn').onclick = async () => {
+        await initAudio(); const a = getActive();
         if(a.paused) { a.play(); playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
         else { a.pause(); playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>'; }
     };
@@ -276,14 +271,13 @@
         if(playlist.length > 0) loadTrack(playlist.length - e.target.files.length);
         trackListUI.innerHTML = "";
         playlist.forEach((t, i) => {
-            const div = document.createElement('div');
-            div.className = 'track-item';
-            div.textContent = t.name;
-            div.onclick = (ev) => { ev.stopPropagation(); loadTrack(i); playlistPanel.classList.remove('open'); };
+            const div = document.createElement('div'); div.className = 'track-item'; div.textContent = t.name;
+            div.onclick = () => { loadTrack(i); playlistPanel.classList.remove('open'); };
             trackListUI.appendChild(div);
         });
     };
 
+    // UPDATED: Horizontal Volume Interaction
     function setV(e) {
         const r = volHitbox.getBoundingClientRect();
         const p = e.touches ? e.touches[0] : e;
@@ -291,9 +285,9 @@
         vFil.style.width = (pr * 100) + '%';
         audio.volume = pr; cardVideo.volume = pr;
     }
-    volHitbox.addEventListener('mousedown', (e) => { e.stopPropagation(); setV(e); window.onmousemove = setV; window.onmouseup = () => window.onmousemove = null; });
-    volHitbox.addEventListener('touchstart', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
-    volHitbox.addEventListener('touchmove', (e) => { e.stopPropagation(); setV(e); }, {passive: false});
+    volHitbox.addEventListener('mousedown', (e) => { setV(e); window.onmousemove = setV; window.onmouseup = () => window.onmousemove = null; });
+    volHitbox.addEventListener('touchstart', (e) => { setV(e); }, {passive: false});
+    volHitbox.addEventListener('touchmove', (e) => { setV(e); }, {passive: false});
 
     window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
     window.onresize();
