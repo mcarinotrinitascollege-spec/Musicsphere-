@@ -23,7 +23,7 @@
         
         .video-card-inner { 
             position: absolute; inset: 0; width: 100%; height: 100%; 
-            object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.8s ease; 
+            object-fit: cover; z-index: 1; opacity: 0; transition: opacity 0.8s ease, filter 0.8s ease; 
             filter: brightness(0.5) contrast(1.1); pointer-events: none;
         }
         
@@ -34,15 +34,28 @@
             border: 1.5px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden;
             backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            transition: all 0.5s ease;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
+        /* Long Press / Stealth States */
         .card.is-stealth .headtitle, 
         .card.is-stealth canvas, 
         .card.is-stealth .load-btn, 
         .card.is-stealth .vol-container,
-        .card.is-stealth #listToggle { 
+        .card.is-stealth #listToggle,
+        .card.is-expanded .headtitle,
+        .card.is-expanded .disk-wrapper,
+        .card.is-expanded canvas,
+        .card.is-expanded .load-btn,
+        .card.is-expanded .vol-container,
+        .card.is-expanded .controls,
+        .card.is-expanded #listToggle { 
             opacity: 0; pointer-events: none; transform: translateY(10px); 
+        }
+
+        .card.is-expanded .video-card-inner {
+            opacity: 1 !important;
+            filter: brightness(1) contrast(1);
         }
 
         @keyframes titleBreath {
@@ -64,7 +77,7 @@
 
         .disk-wrapper { 
             position: relative; width: 250px; height: 250px; flex-shrink: 0; margin-bottom: 10px;
-            display: flex; align-items: center; justify-content: center; z-index: 20;
+            display: flex; align-items: center; justify-content: center; z-index: 20; transition: opacity 0.4s;
         }
 
         #cdAssembly { 
@@ -73,6 +86,7 @@
             border: 1.5px solid rgba(255, 255, 255, 0.4); cursor: grab; z-index: 5;
             transform: rotate(var(--disk-rot));
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+            transition: box-shadow 0.1s ease, border-color 0.1s ease;
         }
 
         #curved-text-svg { position: absolute; inset: 0; pointer-events: none; z-index: 10; transform: rotate(calc(var(--disk-rot) - 90deg)); }
@@ -89,7 +103,7 @@
         .vol-track { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .vol-fill { position: absolute; left: 0; top: 0; height: 100%; width: 70%; background: linear-gradient(to right, #b19cd9, #ffffff); border-radius: 20px; transition: width 0.1s ease; }
         
-        .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; }
+        .controls { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; z-index: 30; transition: 0.4s; }
         .icon-btn { background: none; border: none; width: 25px; height: 25px; fill: white; opacity: 0.4; cursor: pointer; }
         
         .play-btn { 
@@ -100,7 +114,8 @@
 
         #playlist-panel { 
             position: absolute; bottom: -100%; left: 0; width: 100%; height: 85%; 
-            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(40px) brightness(1.2); -webkit-backdrop-filter: blur(40px) brightness(1.2);
+            background: rgba(10, 5, 15, 0.25); 
+            backdrop-filter: blur(60px) brightness(1.1); -webkit-backdrop-filter: blur(60px) brightness(1.1);
             border-top: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px 40px 0 0; z-index: 1000; 
             transition: bottom 0.6s cubic-bezier(0.16, 1, 0.3, 1); padding: 30px 20px; 
         }
@@ -150,7 +165,6 @@
 <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
-    // PWA SERVICE WORKER REGISTRATION
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -174,7 +188,7 @@
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 128; 
+            analyser.fftSize = 256; 
             const audioSrc = audioCtx.createMediaElementSource(audio);
             const videoSrc = audioCtx.createMediaElementSource(cardVideo);
             audioSrc.connect(analyser); videoSrc.connect(analyser);
@@ -194,13 +208,19 @@
 
         if (analyser && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
+
+            const bass = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
+            const bassNorm = bass / 255;
+            cdAssembly.style.boxShadow = `0 0 ${25 + (bassNorm * 35)}px rgba(255, 255, 255, ${0.15 + (bassNorm * 0.45)})`;
+            cdAssembly.style.borderColor = `rgba(255, 255, 255, ${0.4 + (bassNorm * 0.6)})`;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const numBars = 20; 
-            const gap = 4;
+            const numBars = 45; 
+            const gap = 2;
             const barW = (canvas.width - (numBars * gap)) / numBars;
             for (let i = 0; i < numBars; i++) {
                 const centerDist = Math.abs(i - (numBars - 1) / 2) / ((numBars - 1) / 2);
-                let rawVal = dataArray[Math.floor((1 - centerDist) * 15)]; 
+                let rawVal = dataArray[Math.floor((1 - centerDist) * 35)]; 
                 let uMultiplier = 0.2 + (Math.pow(centerDist, 2) * 0.8);
                 let val = (rawVal / 255) * canvas.height * uMultiplier;
                 ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (uMultiplier * 0.5)})`;
@@ -211,6 +231,21 @@
         }
     }
     draw();
+
+    let pressTimer;
+    const startPress = (e) => {
+        if (playlist[currentIndex]?.type !== 'video') return;
+        pressTimer = setTimeout(() => playerCard.classList.add('is-expanded'), 500);
+    };
+    const endPress = () => {
+        clearTimeout(pressTimer);
+        playerCard.classList.remove('is-expanded');
+    };
+
+    playerCard.addEventListener('mousedown', startPress);
+    playerCard.addEventListener('touchstart', startPress, {passive: true});
+    window.addEventListener('mouseup', endPress);
+    window.addEventListener('touchend', endPress);
 
     function loadTrack(index) {
         if (!playlist.length) return;
