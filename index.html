@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#b19cd9">
+    <link rel="manifest" href="manifest.json">
+    
     <title>Musicsphere Pro</title>
     <style>
         :root { --accent: #b19cd9; --bg: #05010a; --disk-rot: 0deg; }
@@ -145,6 +150,15 @@
 <audio id="player" crossorigin="anonymous"></audio>
 
 <script>
+    // PWA SERVICE WORKER REGISTRATION
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW Registered'))
+          .catch(err => console.log('SW Failed', err));
+      });
+    }
+
     const audio = document.getElementById('player'), cardVideo = document.getElementById('cardVideo'), bgVideo = document.getElementById('bgVideo');
     const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d'), cdAssembly = document.getElementById('cdAssembly');
     const songLabel = document.getElementById('songLabel'), timeDisplay = document.getElementById('time-display');
@@ -170,7 +184,6 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    // U-SHAPED VISUALIZER
     function draw() {
         requestAnimationFrame(draw);
         const active = getActive();
@@ -182,22 +195,14 @@
         if (analyser && !active.paused) {
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             const numBars = 20; 
             const gap = 4;
             const barW = (canvas.width - (numBars * gap)) / numBars;
-
             for (let i = 0; i < numBars; i++) {
-                // Determine distance from center (1.0 at edges, 0.0 at center)
                 const centerDist = Math.abs(i - (numBars - 1) / 2) / ((numBars - 1) / 2);
-                
-                // Map frequency data to edges
                 let rawVal = dataArray[Math.floor((1 - centerDist) * 15)]; 
-                
-                // Parabolic multiplier: center bars stay low (20%), edges go high (100%)
                 let uMultiplier = 0.2 + (Math.pow(centerDist, 2) * 0.8);
                 let val = (rawVal / 255) * canvas.height * uMultiplier;
-
                 ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (uMultiplier * 0.5)})`;
                 ctx.beginPath();
                 ctx.roundRect(i * (barW + gap), canvas.height - val, barW, val, 15);
