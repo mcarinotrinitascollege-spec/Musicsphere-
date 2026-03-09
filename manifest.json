@@ -1,6 +1,6 @@
 {
   "short_name": "Musicsphere",
-  "name": "Musicsphere Pro: Cinematic Player",
+  "name": "MusicSphere Visualizer",
   "description": "A high-fidelity cinematic music and video player with haptic feedback and visualizers.",
   "icons": [
     {
@@ -16,7 +16,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#05010a",
   "background_color": "#05010a",
   "orientation": "portrait-primary",
   "categories": ["music", "entertainment"]
